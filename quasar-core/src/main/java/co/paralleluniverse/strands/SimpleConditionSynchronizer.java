@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberControl;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 

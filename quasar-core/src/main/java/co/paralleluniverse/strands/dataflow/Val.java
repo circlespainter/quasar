@@ -13,15 +13,8 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
-import co.paralleluniverse.fibers.DefaultFiberScheduler;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
-import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
@@ -143,7 +136,6 @@ public class Val<V> implements Future<V> {
      * @throws InterruptedException
      */
     @Override
-    @Suspendable
     public V get() throws InterruptedException {
         try {
             final SimpleConditionSynchronizer s = sync;
@@ -174,7 +166,6 @@ public class Val<V> implements Future<V> {
      * @throws InterruptedException
      */
     @Override
-    @Suspendable
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
         try {
             final SimpleConditionSynchronizer s = sync;
@@ -204,7 +195,6 @@ public class Val<V> implements Future<V> {
         }
     }
 
-    @Suspendable
     public V get(Timeout timeout) throws InterruptedException, TimeoutException {
         return get(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }

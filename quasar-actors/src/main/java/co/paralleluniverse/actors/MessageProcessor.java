@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  * An interface that is used by {@link BasicActor#receive(co.paralleluniverse.actors.MessageProcessor) BasicActor.receive} for selective receive.
  * @author pron

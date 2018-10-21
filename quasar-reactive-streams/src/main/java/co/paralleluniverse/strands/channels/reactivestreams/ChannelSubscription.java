@@ -13,10 +13,8 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
-import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.ProducerException;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.TimeUnit;

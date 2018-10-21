@@ -1,8 +1,5 @@
 package co.paralleluniverse.fibers.dynamic;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-
 import java.util.ArrayList;
 
 public class DynamicallyLoadedFiber extends Fiber<ArrayList<String>> {

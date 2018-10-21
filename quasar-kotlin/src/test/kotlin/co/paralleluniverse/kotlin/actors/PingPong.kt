@@ -18,7 +18,6 @@ package actors
 import co.paralleluniverse.actors.ActorRef
 import co.paralleluniverse.actors.ActorRegistry
 import co.paralleluniverse.actors.LocalActor
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.kotlin.Actor
 import co.paralleluniverse.kotlin.register
 import co.paralleluniverse.kotlin.spawn

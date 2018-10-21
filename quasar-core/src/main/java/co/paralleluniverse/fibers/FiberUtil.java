@@ -14,8 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableRunnable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

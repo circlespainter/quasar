@@ -13,9 +13,6 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
@@ -63,7 +60,6 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
     }
 
     @Override
-    @Suspendable
     public void onNext(T element) {
         if (element == null)
             throw new NullPointerException(); // #2.13

@@ -19,16 +19,11 @@ import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableCallable;
-import java.util.Arrays;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.hamcrest.MatcherAssert;
+
 import org.junit.After;
 import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
@@ -36,7 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import org.mockito.InOrder;
+
 import static org.mockito.Mockito.*;
 
 /**

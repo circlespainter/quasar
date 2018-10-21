@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;

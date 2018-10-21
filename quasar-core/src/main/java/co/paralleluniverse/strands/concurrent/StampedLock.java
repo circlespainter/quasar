@@ -22,9 +22,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
+
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -360,7 +358,6 @@ public class StampedLock implements java.io.Serializable {
      *
      * @return a stamp that can be used to unlock or convert mode
      */
-    @Suspendable
     public long writeLock() {
         try {
             long s, next;  // bypass acquireWrite in fully unlocked case only
@@ -396,7 +393,6 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    @Suspendable
     public long tryWriteLock(long time, TimeUnit unit)
             throws InterruptedException {
         try {
@@ -428,7 +424,6 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    @Suspendable
     public long writeLockInterruptibly() throws InterruptedException {
         try {
             long next;
@@ -447,7 +442,6 @@ public class StampedLock implements java.io.Serializable {
      *
      * @return a stamp that can be used to unlock or convert mode
      */
-    @Suspendable
     public long readLock() {
         try {
             long s, next;  // bypass acquireRead on fully unlocked case only
@@ -489,7 +483,6 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    @Suspendable
     public long tryReadLock(long time, TimeUnit unit)
             throws InterruptedException {
         try {
@@ -526,7 +519,6 @@ public class StampedLock implements java.io.Serializable {
      * @throws InterruptedException if the current strand is interrupted
      * before acquiring the lock
      */
-    @Suspendable
     public long readLockInterruptibly() throws InterruptedException {
         try {
             long next;
@@ -872,12 +864,10 @@ public class StampedLock implements java.io.Serializable {
 
     // view classes
     final class ReadLockView implements Lock {
-        @Suspendable
         public void lock() {
             readLock();
         }
 
-        @Suspendable
         public void lockInterruptibly() throws InterruptedException {
             readLockInterruptibly();
         }
@@ -886,7 +876,6 @@ public class StampedLock implements java.io.Serializable {
             return tryReadLock() != 0L;
         }
 
-        @Suspendable
         public boolean tryLock(long time, TimeUnit unit)
                 throws InterruptedException {
             return tryReadLock(time, unit) != 0L;
@@ -902,12 +891,10 @@ public class StampedLock implements java.io.Serializable {
     }
 
     final class WriteLockView implements Lock {
-        @Suspendable
         public void lock() {
             writeLock();
         }
 
-        @Suspendable
         public void lockInterruptibly() throws InterruptedException {
             writeLockInterruptibly();
         }
@@ -916,7 +903,6 @@ public class StampedLock implements java.io.Serializable {
             return tryWriteLock() != 0L;
         }
 
-        @Suspendable
         public boolean tryLock(long time, TimeUnit unit)
                 throws InterruptedException {
             return tryWriteLock(time, unit) != 0L;

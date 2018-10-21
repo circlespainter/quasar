@@ -20,11 +20,6 @@ import co.paralleluniverse.actors.LifecycleMessage;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.ShutdownMessage;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.StrandFactory;
 import org.slf4j.Logger;
 
 /**

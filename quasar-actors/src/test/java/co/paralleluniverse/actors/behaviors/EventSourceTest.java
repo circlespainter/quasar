@@ -17,12 +17,8 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import java.util.Arrays;
+
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import static org.junit.Assert.assertTrue;

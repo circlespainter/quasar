@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.fibers.io;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
@@ -108,7 +106,6 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    @Suspendable
     public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
         try {
             return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
@@ -118,13 +115,11 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    @Suspendable
     public long read(ByteBuffer[] dsts) throws IOException {
         return read(dsts, 0, dsts.length);
     }
 
     @Override
-    @Suspendable
     public int read(ByteBuffer dst) throws IOException {
         try {
             return read(dst, 0L, TimeUnit.MILLISECONDS);
@@ -134,7 +129,6 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    @Suspendable
     public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
         try {
             return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
@@ -144,13 +138,11 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    @Suspendable
     public long write(ByteBuffer[] srcs) throws IOException {
         return write(srcs, 0, srcs.length);
     }
 
     @Override
-    @Suspendable
     public int write(final ByteBuffer src) throws IOException {
         try {
             return write(src, 0L, TimeUnit.MILLISECONDS);

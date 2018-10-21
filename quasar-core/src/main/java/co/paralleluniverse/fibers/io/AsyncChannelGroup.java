@@ -13,9 +13,8 @@
  */
 package co.paralleluniverse.fibers.io;
 
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SchedulerLocal;
-import co.paralleluniverse.fibers.SuspendExecution;
+
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;

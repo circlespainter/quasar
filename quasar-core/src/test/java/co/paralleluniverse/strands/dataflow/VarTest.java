@@ -13,24 +13,16 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
-import co.paralleluniverse.common.test.Matchers;
-import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.SuspendableCallable;
-import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import static java.util.concurrent.TimeUnit.*;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.After;
-import org.junit.Before;
+
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
-import org.junit.Ignore;
+
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;

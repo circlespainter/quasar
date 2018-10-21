@@ -14,12 +14,7 @@
 package co.paralleluniverse.kotlin.fibers
 
 import co.paralleluniverse.common.util.CheckedCallable
-import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.FiberAsync
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
-import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.strands.Strand
-import co.paralleluniverse.strands.SuspendableRunnable
 import org.hamcrest.CoreMatchers.equalTo
 import org.junit.Assert.assertThat
 import org.junit.Assert.fail

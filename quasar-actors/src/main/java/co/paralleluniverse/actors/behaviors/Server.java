@@ -17,7 +17,7 @@ import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.from;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.makeId;
-import co.paralleluniverse.fibers.SuspendExecution;
+
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

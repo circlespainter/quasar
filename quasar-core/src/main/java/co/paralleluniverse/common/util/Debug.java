@@ -13,7 +13,7 @@
 package co.paralleluniverse.common.util;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
-import co.paralleluniverse.strands.Strand;
+
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.net.URI;

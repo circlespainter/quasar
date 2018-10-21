@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 public final class SelectActionImpl<Message> extends SelectAction<Message> {
     private volatile Selector selector;
     private final boolean isData;

@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.common.util.CheckedCallable;
-import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -167,7 +166,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      *                                       The {@link SecurityManager#checkWrite(String)} method is invoked to check
      *                                       write access if the file is opened for writing
      */
-    @Suspendable
     public static FiberFileChannel open(final ExecutorService ioExecutor, final Path path, final Set<? extends OpenOption> options, final FileAttribute<?>... attrs) throws IOException {
         final ExecutorService ioExec = ioExecutor != null ? ioExecutor : fiberFileThreadPool; // FiberAsyncIO.ioExecutor(); // 
         AsynchronousFileChannel afc = FiberAsyncIO.runBlockingIO(fiberFileThreadPool, new CheckedCallable<AsynchronousFileChannel, IOException>() {
@@ -215,7 +213,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      *                                       The {@link SecurityManager#checkWrite(String)} method is invoked to check
      *                                       write access if the file is opened for writing
      */
-    @Suspendable
     public static FiberFileChannel open(Path path, OpenOption... options) throws IOException {
         Set<OpenOption> set = new HashSet<OpenOption>(options.length);
         Collections.addAll(set, options);
@@ -229,7 +226,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     @Override
-    @Suspendable
     public void close() throws IOException {
         ac.close();
         FiberAsyncIO.runBlockingIO(fiberFileThreadPool, new CheckedCallable<Void, IOException>() {
@@ -296,7 +292,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      * @throws IOException
      *                                     If some other I/O error occurs
      */
-    @Suspendable
     public int read(final ByteBuffer dst, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
@@ -307,7 +302,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     @Override
-    @Suspendable
     public int read(ByteBuffer dst) throws IOException {
         final int bytes = read(dst, position);
         position(position + bytes);
@@ -324,13 +318,11 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      * ScatteringByteChannel} interface. </p>
      */
     @Override
-    @Suspendable
     public final long read(ByteBuffer[] dsts) throws IOException {
         return read(dsts, 0, dsts.length);
     }
 
     @Override
-    @Suspendable
     public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
         long r = 0;
         for (int i = 0; i < length; i++)
@@ -382,7 +374,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      * @throws IOException
      *                                     If some other I/O error occurs
      */
-    @Suspendable
     public int write(final ByteBuffer src, final long position) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
@@ -393,7 +384,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     @Override
-    @Suspendable
     public int write(ByteBuffer src) throws IOException {
         final int bytes = write(src, position);
         position(position + bytes);
@@ -401,7 +391,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     @Override
-    @Suspendable
     public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
         long r = 0;
         for (int i = 0; i < length; i++)
@@ -410,7 +399,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     @Override
-    @Suspendable
     public final long write(ByteBuffer[] srcs) throws IOException {
         return write(srcs, 0, srcs.length);
     }
@@ -420,7 +408,6 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
         return ac.size();
     }
 
-    @Suspendable
     public FileLock lock(final long position, final long size, final boolean shared) throws IOException {
         return new FiberAsyncIO<FileLock>() {
             @Override

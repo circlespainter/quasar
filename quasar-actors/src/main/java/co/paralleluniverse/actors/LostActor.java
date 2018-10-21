@@ -14,8 +14,6 @@
 
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  *
  * @author pron

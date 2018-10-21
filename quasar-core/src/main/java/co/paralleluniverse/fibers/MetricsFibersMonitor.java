@@ -14,11 +14,11 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.Metrics;
-import co.paralleluniverse.strands.Strand;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
+
 import static com.codahale.metrics.MetricRegistry.name;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,21 +37,18 @@ class MetricsFibersMonitor implements FibersMonitor {
     private final Gauge<Map<String, String>> runawayFibers;
     private Map<Fiber, StackTraceElement[]> problemFibers;
 
-    public MetricsFibersMonitor(String name, FiberScheduler scheduler) {
+    public MetricsFibersMonitor(String name) {
         this.activeCount = Metrics.counter(metric(name, "numActiveFibers"));
         this.waitingCount = Metrics.counter(metric(name, "numWaitingFibers"));
         this.spuriousWakeups = Metrics.meter(metric(name, "spuriousWakeups"));
         this.timedParkLatency = Metrics.histogram(metric(name, "timedParkLatency"));
-        this.runawayFibers = new Gauge<Map<String, String>>() {
-            @Override
-            public Map<String, String> getValue() {
-                Map<String, String> map = new HashMap<>();
-                if (problemFibers != null) {
-                    for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
-                        map.put(e.getKey().toString(), Strand.toString(e.getValue()));
-                }
-                return map;
+        this.runawayFibers = () -> {
+            Map<String, String> map = new HashMap<>();
+            if (problemFibers != null) {
+                for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+                    map.put(e.getKey().toString(), Strand.toString(e.getValue()));
             }
+            return map;
         };
         Metrics.register("runawayFibers", runawayFibers);
     }

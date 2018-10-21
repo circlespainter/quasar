@@ -13,9 +13,6 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import co.paralleluniverse.fibers.SuspendExecution
-import co.paralleluniverse.fibers.Suspendable
-
 // See https://github.com/puniverse/quasar/issues/275
 @FunctionalInterface
 interface KotlinSamInterface {

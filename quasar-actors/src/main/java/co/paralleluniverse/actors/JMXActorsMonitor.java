@@ -15,7 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
-import co.paralleluniverse.strands.Strand;
+
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;

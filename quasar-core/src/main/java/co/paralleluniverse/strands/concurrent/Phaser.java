@@ -22,9 +22,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -561,7 +559,6 @@ public class Phaser {
      * @throws IllegalStateException if attempting to register more
      * than the maximum supported number of parties
      */
-    @Suspendable
     public int register() {
         try {
             return doRegister(1);
@@ -589,7 +586,6 @@ public class Phaser {
      * than the maximum supported number of parties
      * @throws IllegalArgumentException if {@code parties < 0}
      */
-    @Suspendable
     public int bulkRegister(int parties) {
         try {
             if (parties < 0)
@@ -656,7 +652,6 @@ public class Phaser {
      * @throws IllegalStateException if not terminated and the number
      * of unarrived parties would become negative
      */
-    @Suspendable
     public int arriveAndAwaitAdvance() {
         try {
             // Specialization of doArrive+awaitAdvance eliminating some reads/paths
@@ -710,7 +705,6 @@ public class Phaser {
      * negative, or the (negative) {@linkplain #getPhase() current phase}
      * if terminated
      */
-    @Suspendable
     public int awaitAdvance(int phase) {
         try {
             final Phaser root = this.root;
@@ -741,7 +735,6 @@ public class Phaser {
      * if terminated
      * @throws InterruptedException if thread interrupted while waiting
      */
-    @Suspendable
     public int awaitAdvanceInterruptibly(int phase) throws InterruptedException {
         try {
             final Phaser root = this.root;
@@ -781,7 +774,6 @@ public class Phaser {
      * @throws InterruptedException if thread interrupted while waiting
      * @throws TimeoutException if timed out while waiting
      */
-    @Suspendable
     public int awaitAdvanceInterruptibly(int phase, long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
         try {
             long nanos = unit.toNanos(timeout);

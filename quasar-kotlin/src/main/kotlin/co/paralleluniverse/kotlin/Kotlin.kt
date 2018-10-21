@@ -13,10 +13,6 @@
  */
 package co.paralleluniverse.kotlin
 
-import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.FiberScheduler
-import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.channels.ReceivePort
 import co.paralleluniverse.strands.channels.SelectAction
 import co.paralleluniverse.strands.channels.Selector

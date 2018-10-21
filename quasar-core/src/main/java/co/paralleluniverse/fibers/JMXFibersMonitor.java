@@ -15,7 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
-import co.paralleluniverse.strands.Strand;
+
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.HashMap;

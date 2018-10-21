@@ -21,8 +21,6 @@
  */
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
@@ -304,7 +302,6 @@ public class Semaphore implements java.io.Serializable {
      *
      * @throws InterruptedException if the current thread is interrupted
      */
-    @Suspendable
     public void acquire() throws InterruptedException {
         sync.acquireSharedInterruptibly(1);
     }
@@ -328,7 +325,6 @@ public class Semaphore implements java.io.Serializable {
      * occurred.  When the thread does return from this method its interrupt
      * status will be set.
      */
-    @Suspendable
     public void acquireUninterruptibly() {
         sync.acquireShared(1);
     }
@@ -460,7 +456,6 @@ public class Semaphore implements java.io.Serializable {
      * @throws InterruptedException if the current thread is interrupted
      * @throws IllegalArgumentException if {@code permits} is negative
      */
-    @Suspendable
     public void acquire(int permits) throws InterruptedException {
         if (permits < 0) throw new IllegalArgumentException();
         sync.acquireSharedInterruptibly(permits);
@@ -489,7 +484,6 @@ public class Semaphore implements java.io.Serializable {
      * @throws IllegalArgumentException if {@code permits} is negative
      *
      */
-    @Suspendable
     public void acquireUninterruptibly(int permits) {
         if (permits < 0) throw new IllegalArgumentException();
         sync.acquireShared(permits);

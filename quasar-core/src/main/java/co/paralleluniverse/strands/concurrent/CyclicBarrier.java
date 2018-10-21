@@ -22,9 +22,6 @@
 
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
-
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -184,7 +181,6 @@ public class CyclicBarrier {
     /**
      * Main barrier code, covering the various policies.
      */
-    @Suspendable
     private int dowait(boolean timed, long nanos)
             throws InterruptedException, BrokenBarrierException,
             TimeoutException {
@@ -347,7 +343,6 @@ public class CyclicBarrier {
      *         broken when {@code await} was called, or the barrier
      *         action (if present) failed due to an exception
      */
-    @Suspendable
     public int await() throws InterruptedException, BrokenBarrierException {
         try {
             return dowait(false, 0L);
@@ -418,7 +413,6 @@ public class CyclicBarrier {
      *         when {@code await} was called, or the barrier action (if
      *         present) failed due to an exception
      */
-    @Suspendable
     public int await(long timeout, TimeUnit unit)
             throws InterruptedException,
             BrokenBarrierException,
@@ -434,7 +428,6 @@ public class CyclicBarrier {
      *         construction or the last reset, or a barrier action
      *         failed due to an exception; {@code false} otherwise.
      */
-    @Suspendable
     public boolean isBroken() {
         final ReentrantLock lock = this.lock;
         lock.lock();
@@ -454,7 +447,6 @@ public class CyclicBarrier {
      * and choose one to perform the reset.  It may be preferable to
      * instead create a new barrier for subsequent use.
      */
-    @Suspendable
     public void reset() {
         final ReentrantLock lock = this.lock;
         lock.lock();
@@ -472,7 +464,6 @@ public class CyclicBarrier {
      *
      * @return the number of parties currently blocked in {@link #await}
      */
-    @Suspendable
     public int getNumberWaiting() {
         final ReentrantLock lock = this.lock;
         lock.lock();

@@ -14,7 +14,6 @@
 package co.paralleluniverse.kotlin.fibers
 
 import co.paralleluniverse.kotlin.*
-import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.channels.Channels
 
 import org.junit.Test

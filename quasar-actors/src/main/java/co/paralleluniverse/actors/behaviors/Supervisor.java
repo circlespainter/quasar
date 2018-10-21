@@ -17,7 +17,7 @@ import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
-import co.paralleluniverse.fibers.SuspendExecution;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 

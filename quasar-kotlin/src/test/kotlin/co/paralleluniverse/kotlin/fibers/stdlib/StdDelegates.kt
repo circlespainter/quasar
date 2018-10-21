@@ -13,11 +13,9 @@
  */
 package co.paralleluniverse.kotlin.fibers.stdlib
 
-import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.kotlin.quasarLazy
-import co.paralleluniverse.strands.SuspendableCallable
 import org.junit.Assert
 import org.junit.Test
 import kotlin.properties.Delegates

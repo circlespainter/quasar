@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +20,7 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
-import org.openjdk.jmh.profile.*;
+
 import static co.paralleluniverse.fibers.TestsHelper.exec;
 
 @State(Scope.Thread)

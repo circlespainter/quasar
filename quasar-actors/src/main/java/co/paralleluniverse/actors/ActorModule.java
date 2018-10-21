@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.common.reflection.AnnotationUtil;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;

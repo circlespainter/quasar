@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
@@ -21,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import co.paralleluniverse.concurrent.util.EnhancedAtomicLong;
 import static co.paralleluniverse.concurrent.util.EnhancedAtomicLong.*;
-import co.paralleluniverse.fibers.Suspendable;
 
 /**
  *
@@ -42,7 +40,6 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
     }
 
     @Override
-    @Suspendable
     public M tryReceive() {
         try {
             return timedReceive(0, TimeUnit.NANOSECONDS);

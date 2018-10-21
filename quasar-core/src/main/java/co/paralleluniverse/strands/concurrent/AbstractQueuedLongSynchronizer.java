@@ -32,9 +32,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
+
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -972,7 +970,6 @@ public abstract class AbstractQueuedLongSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
-    @Suspendable
     public final void acquire(long arg) {
         try {
             if (!tryAcquire(arg)
@@ -1061,7 +1058,6 @@ public abstract class AbstractQueuedLongSynchronizer
      *        {@link #tryAcquireShared} but is otherwise uninterpreted
      *        and can represent anything you like.
      */
-    @Suspendable
     public final void acquireShared(long arg) {
         try {
             if (tryAcquireShared(arg) < 0)
@@ -1084,7 +1080,6 @@ public abstract class AbstractQueuedLongSynchronizer
      * you like.
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final void acquireSharedInterruptibly(long arg)
             throws InterruptedException {
         try {
@@ -1113,7 +1108,6 @@ public abstract class AbstractQueuedLongSynchronizer
      * @return {@code true} if acquired; {@code false} if timed out
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final boolean tryAcquireSharedNanos(long arg, long nanosTimeout)
             throws InterruptedException {
         try {
@@ -1768,7 +1762,6 @@ public abstract class AbstractQueuedLongSynchronizer
          *      {@link #acquire} with saved state as argument.
          * </ol>
          */
-        @Suspendable
         public final void awaitUninterruptibly() {
             try {
                 Node node = addConditionWaiter();
@@ -1870,7 +1863,6 @@ public abstract class AbstractQueuedLongSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
-        @Suspendable
         public final long awaitNanos(long nanosTimeout)
                 throws InterruptedException {
             try {
@@ -1917,7 +1909,6 @@ public abstract class AbstractQueuedLongSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
-        @Suspendable
         public final boolean awaitUntil(Date deadline)
                 throws InterruptedException {
             try {
@@ -1963,7 +1954,6 @@ public abstract class AbstractQueuedLongSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
-        @Suspendable
         public final boolean await(long time, TimeUnit unit)
                 throws InterruptedException {
             try {

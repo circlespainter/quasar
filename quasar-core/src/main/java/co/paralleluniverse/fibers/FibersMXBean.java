@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.strands.Strand.State;
 import java.util.Map;
 
 /**

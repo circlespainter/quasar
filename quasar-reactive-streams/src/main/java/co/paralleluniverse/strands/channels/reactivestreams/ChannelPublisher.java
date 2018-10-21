@@ -13,9 +13,6 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Publisher;

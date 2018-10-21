@@ -22,7 +22,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.util.SingleConsumerNonblockingProducerDelayQueue;
-import co.paralleluniverse.strands.Strand;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;

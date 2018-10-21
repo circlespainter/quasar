@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  * A listener associated with a {@link Selector#send(SendPort, Object, SelectSendListener)  send SelectAction}, which is called if an only if
  * the associated action has succeeded.

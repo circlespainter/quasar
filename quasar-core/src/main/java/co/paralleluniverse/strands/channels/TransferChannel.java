@@ -23,8 +23,6 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ThreadLocalRandom;

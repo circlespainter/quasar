@@ -13,10 +13,7 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
-import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.strands.SuspendableCallable
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

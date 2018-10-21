@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  * A delegate object that can be used instead of subclassing {@link BehaviorActor} and overriding its methods.
  *

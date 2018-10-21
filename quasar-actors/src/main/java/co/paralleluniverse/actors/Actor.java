@@ -13,26 +13,15 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.actors.ActorImpl.ActorLifecycleListener;
-import static co.paralleluniverse.actors.ActorImpl.getActorRefImpl;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
-import co.paralleluniverse.fibers.DefaultFiberScheduler;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.FiberWriter;
 import co.paralleluniverse.fibers.Joinable;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.Serialization;
-import co.paralleluniverse.strands.Strand;
-import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.Stranded;
-import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.reflect.Constructor;
@@ -633,13 +622,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     @Override
-    @Suspendable
     public final void join() throws ExecutionException, InterruptedException {
         runner.join();
     }
 
     @Override
-    @Suspendable
     public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
         runner.join(timeout, unit);
     }

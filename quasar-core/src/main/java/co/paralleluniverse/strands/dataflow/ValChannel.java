@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;

@@ -20,13 +20,7 @@ import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
-import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -81,7 +75,6 @@ public class ProxyServerTest {
         return actor;
     }
 
-    @Suspendable
     public static interface A {
         int foo(String str, int x); // throws SuspendExecution;
 
@@ -107,7 +100,6 @@ public class ProxyServerTest {
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
         final Server<?, ?, ?> a = spawnServer(false, new A() {
-            @Suspendable
             public int foo(String str, int x) {
                 try {
                     Strand.sleep(50);
@@ -140,7 +132,6 @@ public class ProxyServerTest {
     @Test
     public void whenCalledFromThreadThenResultIsReturned() throws Exception {
         final Server<?, ?, ?> a = spawnServer(false, new A() {
-            @Suspendable
             public int foo(String str, int x) {
                 try {
                     Strand.sleep(50);
@@ -231,7 +222,6 @@ public class ProxyServerTest {
                 throw new UnsupportedOperationException();
             }
 
-            @Suspendable
             public void bar(int x) {
                 try {
                     Strand.sleep(100);
@@ -261,7 +251,6 @@ public class ProxyServerTest {
                 throw new UnsupportedOperationException();
             }
 
-            @Suspendable
             public void bar(int x) {
                 try {
                     Strand.sleep(100);
@@ -284,7 +273,6 @@ public class ProxyServerTest {
     @Test
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
         final Server<?, ?, ?> a = spawnServer(false, new A() {
-            @Suspendable
             public int foo(String str, int x) {
                 try {
                     Strand.sleep(100);
@@ -326,7 +314,6 @@ public class ProxyServerTest {
                 throw new UnsupportedOperationException();
             }
 
-            @Suspendable
             public void bar(int x) {
             }
         }) {

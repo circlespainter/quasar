@@ -15,7 +15,6 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.EnhancedAtomicReference;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;

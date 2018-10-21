@@ -21,11 +21,7 @@
  */
 
 package co.paralleluniverse.strands.concurrent;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 import java.util.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -720,7 +716,6 @@ public class ReentrantReadWriteLock
          * the current strand becomes disabled for strand scheduling
          * purposes and lies dormant until the read lock has been acquired.
          */
-        @Suspendable
         public void lock() {
             sync.acquireShared(1);
         }
@@ -766,7 +761,6 @@ public class ReentrantReadWriteLock
          *
          * @throws InterruptedException if the current strand is interrupted
          */
-        @Suspendable
         public void lockInterruptibly() throws InterruptedException {
             sync.acquireSharedInterruptibly(1);
         }
@@ -863,7 +857,6 @@ public class ReentrantReadWriteLock
          * @throws NullPointerException if the time unit is null
          *
          */
-        @Suspendable
         public boolean tryLock(long timeout, TimeUnit unit)
                 throws InterruptedException {
             return sync.tryAcquireSharedNanos(1, unit.toNanos(timeout));
@@ -937,7 +930,6 @@ public class ReentrantReadWriteLock
          * lies dormant until the write lock has been acquired, at which
          * time the write lock hold count is set to one.
          */
-        @Suspendable
         public void lock() {
             sync.acquire(1);
         }
@@ -993,7 +985,6 @@ public class ReentrantReadWriteLock
          *
          * @throws InterruptedException if the current strand is interrupted
          */
-        @Suspendable
         public void lockInterruptibly() throws InterruptedException {
             sync.acquireInterruptibly(1);
         }
@@ -1108,7 +1099,6 @@ public class ReentrantReadWriteLock
          * @throws NullPointerException if the time unit is null
          *
          */
-        @Suspendable
         public boolean tryLock(long timeout, TimeUnit unit)
                 throws InterruptedException {
             return sync.tryAcquireNanos(1, unit.toNanos(timeout));

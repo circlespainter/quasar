@@ -22,8 +22,6 @@
 
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.strands.Strand;
-
 /**
  * A synchronizer that may be exclusively owned by a strand.  This
  * class provides a basis for creating locks and related synchronizers

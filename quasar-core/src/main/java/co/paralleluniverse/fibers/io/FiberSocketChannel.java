@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.fibers.io;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
@@ -384,42 +382,36 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract long read(ByteBuffer[] dsts, int offset, int length) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract long read(ByteBuffer[] dsts) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract int read(ByteBuffer dst) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract long write(ByteBuffer[] srcs, int offset, int length) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract long write(ByteBuffer[] srcs) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected
      */
     @Override
-    @Suspendable
     public abstract int write(final ByteBuffer src) throws IOException;
 
     @Override

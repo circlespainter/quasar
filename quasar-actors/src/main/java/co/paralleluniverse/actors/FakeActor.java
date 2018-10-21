@@ -14,8 +14,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import java.util.Collections;

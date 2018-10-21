@@ -13,8 +13,6 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
-
 /**
  * An object that can construct a new actor
  *

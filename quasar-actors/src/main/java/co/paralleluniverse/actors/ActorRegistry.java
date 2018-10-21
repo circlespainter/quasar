@@ -15,10 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.ServiceUtil;
-import co.paralleluniverse.fibers.DefaultFiberScheduler;
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;

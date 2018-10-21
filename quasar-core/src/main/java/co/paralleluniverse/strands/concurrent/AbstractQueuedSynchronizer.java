@@ -34,9 +34,7 @@
 package co.paralleluniverse.strands.concurrent;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
-import co.paralleluniverse.strands.Strand;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -1196,7 +1194,6 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquire} but is otherwise uninterpreted and
      *        can represent anything you like.
      */
-    @Suspendable
     public final void acquire(int arg) {
         try {
             if (!tryAcquire(arg)
@@ -1221,7 +1218,6 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final void acquireInterruptibly(int arg)
             throws InterruptedException {
         try {
@@ -1251,7 +1247,6 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if acquired; {@code false} if timed out
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final boolean tryAcquireNanos(int arg, long nanosTimeout)
             throws InterruptedException {
         try {
@@ -1295,7 +1290,6 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryAcquireShared} but is otherwise uninterpreted
      *        and can represent anything you like.
      */
-    @Suspendable
     public final void acquireShared(int arg) {
         try {
             if (tryAcquireShared(arg) < 0)
@@ -1318,7 +1312,6 @@ public abstract class AbstractQueuedSynchronizer
      * you like.
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
         try {
@@ -1347,7 +1340,6 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if acquired; {@code false} if timed out
      * @throws InterruptedException if the current strand is interrupted
      */
-    @Suspendable
     public final boolean tryAcquireSharedNanos(int arg, long nanosTimeout)
             throws InterruptedException {
         try {
@@ -2003,7 +1995,6 @@ public abstract class AbstractQueuedSynchronizer
          *      {@link #acquire} with saved state as argument.
          * </ol>
          */
-        @Suspendable
         public final void awaitUninterruptibly() {
             try {
                 Node node = addConditionWaiter();
@@ -2069,7 +2060,6 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
-        @Suspendable
         public final void await() throws InterruptedException {
             try {
                 if (Strand.interrupted())
@@ -2106,7 +2096,6 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
-        @Suspendable
         public final long awaitNanos(long nanosTimeout)
                 throws InterruptedException {
             try {
@@ -2153,7 +2142,6 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
-        @Suspendable
         public final boolean awaitUntil(Date deadline)
                 throws InterruptedException {
             try {
@@ -2199,7 +2187,6 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If timed out while blocked in step 4, return false, else true.
          * </ol>
          */
-        @Suspendable
         public final boolean await(long time, TimeUnit unit)
                 throws InterruptedException {
             try {

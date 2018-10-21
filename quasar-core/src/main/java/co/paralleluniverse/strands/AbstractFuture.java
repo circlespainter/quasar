@@ -14,8 +14,7 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.fibers.Suspendable;
+
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -86,7 +85,6 @@ public class AbstractFuture<V> implements Future<V> {
     }
 
     @Override
-    @Suspendable
     public V get() throws InterruptedException, ExecutionException {
         try {
             if (done)
@@ -106,7 +104,6 @@ public class AbstractFuture<V> implements Future<V> {
     }
 
     @Override
-    @Suspendable
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         try {
             if (done)

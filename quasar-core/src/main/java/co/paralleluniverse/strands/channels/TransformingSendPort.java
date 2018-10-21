@@ -14,8 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Function2;
-import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.strands.SuspendableAction2;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 

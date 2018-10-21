@@ -17,8 +17,6 @@ import co.paralleluniverse.actors.ActorRef
 import co.paralleluniverse.actors.ExitMessage
 import co.paralleluniverse.actors.KotlinActorSupport
 import co.paralleluniverse.actors.LifecycleMessage
-import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.queues.QueueIterator
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.actors.Actor as JActor

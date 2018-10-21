@@ -14,8 +14,6 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Objects;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.SingleConsumerQueue;
