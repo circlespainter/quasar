@@ -45,7 +45,7 @@ class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> implements
 
     @Override
     @SuppressWarnings("empty-statement")
-    public T receive() throws SuspendExecution, InterruptedException {
+    public T receive() throws InterruptedException {
         try {
             return target.receive();
         } catch (InterruptedException e) {
@@ -65,7 +65,7 @@ class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> implements
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public T receive(long timeout, TimeUnit unit) throws InterruptedException {
         try {
             return target.receive(timeout, unit);
         } catch (Exception e) {
@@ -74,7 +74,7 @@ class ErrorMappingReceivePort<T> extends DelegatingReceivePort1<T, T> implements
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public T receive(Timeout timeout) throws InterruptedException {
         try {
             return target.receive(timeout);
         } catch (Exception e) {

@@ -29,7 +29,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public float receiveFloat() throws SuspendExecution, InterruptedException, EOFException {
+    public float receiveFloat() throws InterruptedException, EOFException {
         checkClosed();
         awaitItem();
         final float m = queue().pollFloat();
@@ -38,7 +38,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public float receiveFloat(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
         checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
@@ -48,7 +48,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public float receiveFloat(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public float receiveFloat(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
         return receiveFloat(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -64,7 +64,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public void send(float message) throws SuspendExecution, InterruptedException {
+    public void send(float message) throws InterruptedException {
         if (isSendClosed())
             return;
         if (!queue().enq(message))
@@ -74,7 +74,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public boolean send(float message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(float message, long timeout, TimeUnit unit) throws InterruptedException {
         if (isSendClosed())
             return true;
         if (!queue().enq(message))
@@ -84,7 +84,7 @@ public class QueueFloatChannel extends QueuePrimitiveChannel<Float> implements F
     }
 
     @Override
-    public boolean send(float message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(float message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

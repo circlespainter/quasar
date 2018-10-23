@@ -34,7 +34,7 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    long receiveLong() throws SuspendExecution, InterruptedException, EOFException;
+    long receiveLong() throws InterruptedException, EOFException;
 
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
@@ -47,7 +47,7 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+    long receiveLong(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException;
 
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
@@ -59,7 +59,7 @@ public interface LongReceivePort extends ReceivePort<Long> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    long receiveLong(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+    long receiveLong(Timeout timeout) throws InterruptedException, TimeoutException, EOFException;
 
     /**
      * Tests whether a value is pending in the channel. If it is, the next call to {@code receiveDouble} is guaranteed not to block.

@@ -15,14 +15,8 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
-import co.paralleluniverse.fibers.FibersMonitor;
-import co.paralleluniverse.fibers.NoopFibersMonitor;
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
+import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -34,8 +28,8 @@ public abstract class Strand {
     public static Strand of(Object owner) {
         if (owner instanceof Strand)
             return (Strand) owner;
-//        if (owner instanceof Fiber)
-//            return (Fiber) owner;
+        if (owner instanceof Fiber)
+            return (Fiber) owner;
         else
             return of((Thread) owner);
     }
@@ -73,7 +67,7 @@ public abstract class Strand {
     /**
      * A strand's running state
      */
-    public static enum State {
+    public enum State {
         /**
          * Strand created but not started
          */
@@ -225,15 +219,6 @@ public abstract class Strand {
     public abstract boolean isInterrupted();
 
     /**
-     * Returns an {@link InterruptedException} that was created when the {@link #interrupt()} method was called, and can be used
-     * to retrieve the stack trace of the strand that interrupted this strand.
-     * This method is only intended to assist in debugging.
-     * This method may return {@code null} if this information is not available. The current implementation always returns {@code null}
-     * if this strand is a thread.
-     */
-    public abstract InterruptedException getInterruptStack();
-
-    /**
      * Makes available the permit for this strand, if it
      * was not already available. If this strand was blocked on
      * {@link #park} then it will unblock. Otherwise, its next call
@@ -242,18 +227,6 @@ public abstract class Strand {
      * strand has not been started.
      */
     public abstract void unpark();
-
-    /**
-     * Makes available the permit for this strand, if it
-     * was not already available. If this strand was blocked on
-     * {@link #park} then it will unblock. Otherwise, its next call
-     * to {@link #park} is guaranteed not to block. This operation
-     * is not guaranteed to have any effect at all if the given
-     * strand has not been started.
-     *
-     * @param unblocker the synchronization object responsible for this strand unparking
-     */
-    public abstract void unpark(Object unblocker);
 
     /**
      * Returns the blocker object supplied to the most recent
@@ -307,20 +280,10 @@ public abstract class Strand {
      * @return A strand representing the current fiber or thread
      */
     public static Strand currentStrand() {
-        if (FiberForkJoinScheduler.isFiberThread(Thread.currentThread()))
+        if (java.lang.Strand.currentStrand() instanceof java.lang.Fiber)
             return Fiber.currentFiber();
 
-        Strand s = currentStrand.get();
-        if (s == null) {
-            s = ThreadStrand.get(Thread.currentThread());
-            currentStrand.set(s);
-        }
-        return s;
-//        final Fiber fiber = Fiber.currentFiber();
-//        if (fiber != null)
-//            return of(fiber);
-//        else
-//            return ThreadStrand.currStrand();
+        return ThreadStrand.get(Thread.currentThread());
     }
 
     /**
@@ -403,11 +366,8 @@ public abstract class Strand {
      * should be combined with detailed profiling and benchmarking to
      * ensure that it actually has the desired effect.
      */
-    public static void yield() throws SuspendExecution {
-        if (isCurrentFiber())
-            Fiber.yield();
-        else
-            Thread.yield();
+    public static void yield() {
+        Thread.yield();
     }
 
     /**
@@ -422,11 +382,8 @@ public abstract class Strand {
      * <i>interrupted status</i> of the current strand is
      * cleared when this exception is thrown.
      */
-    public static void sleep(long millis) throws SuspendExecution, InterruptedException {
-        if (isCurrentFiber())
-            Fiber.sleep(millis);
-        else
-            Thread.sleep(millis);
+    public static void sleep(long millis) throws InterruptedException {
+        Thread.sleep(millis);
     }
 
     /**
@@ -444,11 +401,8 @@ public abstract class Strand {
      * <i>interrupted status</i> of the current strand is
      * cleared when this exception is thrown.
      */
-    public static void sleep(long millis, int nanos) throws SuspendExecution, InterruptedException {
-        if (isCurrentFiber())
-            Fiber.sleep(millis, nanos);
-        else
-            Thread.sleep(millis, nanos);
+    public static void sleep(long millis, int nanos) throws InterruptedException {
+        Thread.sleep(millis, nanos);
     }
 
     /**
@@ -463,11 +417,8 @@ public abstract class Strand {
      * <i>interrupted status</i> of the current strand is
      * cleared when this exception is thrown.
      */
-    public static void sleep(long duration, TimeUnit unit) throws SuspendExecution, InterruptedException {
-        if (isCurrentFiber())
-            Fiber.sleep(duration, unit);
-        else
-            unit.sleep(duration);
+    public static void sleep(long duration, TimeUnit unit) throws InterruptedException {
+        unit.sleep(duration);
     }
 
     /**
@@ -496,11 +447,8 @@ public abstract class Strand {
      * the strand to park in the first place. Callers may also determine,
      * for example, the interrupt status of the strand upon return.
      */
-    public static void park() throws SuspendExecution {
-        if (isCurrentFiber())
-            Fiber.park();
-        else
-            LockSupport.park();
+    public static void park() {
+        LockSupport.park();
     }
 
     /**
@@ -531,68 +479,8 @@ public abstract class Strand {
      *
      * @param blocker the synchronization object responsible for this strand parking
      */
-    public static void park(Object blocker) throws SuspendExecution {
-        if (isCurrentFiber())
-            Fiber.park(blocker);
-        else
-            LockSupport.park(blocker);
-    }
-
-    private static boolean canTransferControl(Strand other) {
-        Strand current = Strand.currentStrand();
-        return (other.isFiber() && current.isFiber() && ((Fiber) other).getScheduler() == ((Fiber) current).getScheduler());
-    }
-
-    public static void parkAndUnpark(Strand other, Object blocker) throws SuspendExecution {
-        if (canTransferControl(other))
-            Fiber.parkAndUnpark((Fiber) other, blocker);
-        else if (!other.isFiber() && !isCurrentFiber()) {
-            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
-            other.unpark(blocker);
-            LockSupport.park(blocker);
-        } else {
-            other.unpark(blocker);
-            park(blocker);
-        }
-    }
-
-    public static void parkAndUnpark(Strand other) throws SuspendExecution {
-        if (canTransferControl(other))
-            Fiber.parkAndUnpark((Fiber) other);
-        else if (!other.isFiber() && !isCurrentFiber()) {
-            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
-            other.unpark();
-            LockSupport.park();
-        } else {
-            other.unpark();
-            park();
-        }
-    }
-
-    public static void yieldAndUnpark(Strand other, Object blocker) throws SuspendExecution {
-        if (canTransferControl(other))
-            Fiber.yieldAndUnpark((Fiber) other, blocker);
-        else if (!other.isFiber() && !isCurrentFiber()) {
-            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
-            other.unpark(blocker);
-            //Thread.yield(); - it's a shame to yield now as we'll shortly block
-        } else {
-            other.unpark(blocker);
-            //yield(); - it's a shame to yield now as we'll shortly block
-        }
-    }
-
-    public static void yieldAndUnpark(Strand other) throws SuspendExecution {
-        if (other.isFiber() && isCurrentFiber())
-            Fiber.yieldAndUnpark((Fiber) other);
-        else if (!other.isFiber() && !isCurrentFiber()) {
-            // might be made faster on Linux if SwitchTo syscall is introduced into the kernel.
-            other.unpark();
-            //Thread.yield(); - it's a shame to yield now as we'll shortly block
-        } else {
-            other.unpark();
-            //yield(); - it's a shame to yield now as we'll shortly block
-        }
+    public static void park(Object blocker) {
+        LockSupport.park(blocker);
     }
 
     /**
@@ -626,11 +514,8 @@ public abstract class Strand {
      *
      * @param nanos the maximum number of nanoseconds to wait
      */
-    public static void parkNanos(long nanos) throws SuspendExecution {
-        if (isCurrentFiber())
-            Fiber.park(nanos, TimeUnit.NANOSECONDS);
-        else
-            LockSupport.parkNanos(nanos);
+    public static void parkNanos(long nanos) {
+        LockSupport.parkNanos(nanos);
     }
 
     /**
@@ -665,11 +550,8 @@ public abstract class Strand {
      * @param blocker the synchronization object responsible for this strand parking
      * @param nanos   the maximum number of nanoseconds to wait
      */
-    public static void parkNanos(Object blocker, long nanos) throws SuspendExecution {
-        if (isCurrentFiber())
-            Fiber.park(blocker, nanos, TimeUnit.NANOSECONDS);
-        else
-            LockSupport.parkNanos(blocker, nanos);
+    public static void parkNanos(Object blocker, long nanos) {
+        LockSupport.parkNanos(blocker, nanos);
     }
 
     /**
@@ -704,13 +586,8 @@ public abstract class Strand {
      * @param blocker  the synchronization object responsible for this strand parking
      * @param deadline the absolute time, in milliseconds from the Epoch, to wait until
      */
-    public static void parkUntil(Object blocker, long deadline) throws SuspendExecution {
-        if (isCurrentFiber()) {
-            final long delay = deadline - System.currentTimeMillis();
-            if (delay > 0)
-                Fiber.park(blocker, delay, TimeUnit.MILLISECONDS);
-        } else
-            LockSupport.parkUntil(blocker, deadline);
+    public static void parkUntil(Object blocker, long deadline) {
+        LockSupport.parkUntil(blocker, deadline);
     }
 
     /**
@@ -736,22 +613,6 @@ public abstract class Strand {
      * is not guaranteed to have any effect at all if the given
      * strand has not been started.
      *
-     * @param strand    the strand to unpark, or {@code null}, in which case this operation has no effect
-     * @param unblocker the synchronization object responsible for the strand unparking
-     */
-    public static void unpark(Strand strand, Object unblocker) {
-        if (strand != null)
-            strand.unpark(unblocker);
-    }
-
-    /**
-     * Makes available the permit for the given strand, if it
-     * was not already available. If the strand was blocked on
-     * {@code park} then it will unblock. Otherwise, its next call
-     * to {@code park} is guaranteed not to block. This operation
-     * is not guaranteed to have any effect at all if the given
-     * strand has not been started.
-     *
      * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
      */
     public static void unpark(Thread strand) {
@@ -762,12 +623,8 @@ public abstract class Strand {
      * Prints a stack trace of the current strand to the standard error stream.
      * This method is used only for debugging.
      */
-    @SuppressWarnings({"CallToThreadDumpStack", "CallToPrintStackTrace"})
     public static void dumpStack() {
-        if (isCurrentFiber())
-            Fiber.dumpStack();
-        else
-            Thread.dumpStack();
+        new Exception("Stack trace").printStackTrace();
     }
 
     /**
@@ -803,7 +660,7 @@ public abstract class Strand {
         return of(strand1).equals(of(strand2));
     }
 
-    public static Strand clone(Strand strand, final SuspendableCallable<?> target) {
+    public static Strand clone(Strand strand, final Callable<?> target) {
         if (strand.isAlive())
             throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
         if (strand instanceof FiberStrand)
@@ -815,7 +672,7 @@ public abstract class Strand {
             return ThreadStrand.get(cloneThread((Thread) strand.getUnderlying(), toRunnable(target)));
     }
 
-    public static Strand clone(Strand strand, final SuspendableRunnable target) {
+    public static Strand clone(Strand strand, final Runnable target) {
         if (strand.isAlive())
             throw new IllegalStateException("A strand can only be cloned after death. " + strand + " isn't dead.");
         if (strand instanceof FiberStrand)
@@ -828,37 +685,37 @@ public abstract class Strand {
     }
 
     /**
-     * A utility method that converts a {@link SuspendableRunnable} to a {@link Runnable} so that it could run
+     * A utility method that converts a {@link Runnable} to a {@link Runnable} so that it could run
      * as the target of a thread.
      */
-    public static Runnable toRunnable(final SuspendableRunnable runnable) {
-        return new SuspendableRunnableRunnable(runnable);
+    public static Runnable toRunnable(final Runnable runnable) {
+        return new RunnableRunnable(runnable);
     }
 
     /**
-     * A utility method that converts a {@link SuspendableCallable} to a {@link Runnable} so that it could run
+     * A utility method that converts a {@link Callable} to a {@link Runnable} so that it could run
      * as the target of a thread. The return value of the callable is ignored.
      */
-    public static Runnable toRunnable(final SuspendableCallable<?> callable) {
-        return new SuspendableCallableRunnable(callable);
+    public static Runnable toRunnable(final Callable<?> callable) {
+        return new CallableRunnable(callable);
     }
 
     /**
-     * Returns the {@link SuspendableCallable} or {@link SuspendableRunnable}, wrapped by the given {@code Runnable}
+     * Returns the {@link Callable} or {@link Runnable}, wrapped by the given {@code Runnable}
      * by {@code toRunnable}.
      */
     public static Object unwrapSuspendable(Runnable r) {
-        if (r instanceof SuspendableCallableRunnable)
-            return ((SuspendableCallableRunnable) r).callable;
-        if (r instanceof SuspendableRunnableRunnable)
-            return ((SuspendableRunnableRunnable) r).runnable;
+        if (r instanceof CallableRunnable)
+            return ((CallableRunnable) r).callable;
+        if (r instanceof RunnableRunnable)
+            return ((RunnableRunnable) r).runnable;
         return null;
     }
 
-    private static class SuspendableRunnableRunnable implements Runnable {
-        private final SuspendableRunnable runnable;
+    private static class RunnableRunnable implements Runnable {
+        private final Runnable runnable;
 
-        public SuspendableRunnableRunnable(SuspendableRunnable runnable) {
+        public RunnableRunnable(Runnable runnable) {
             this.runnable = runnable;
         }
 
@@ -866,28 +723,23 @@ public abstract class Strand {
         public void run() {
             try {
                 runnable.run();
-            } catch (SuspendExecution ex) {
-                throw new AssertionError(ex);
-            } catch (InterruptedException ex) {
             } catch (Exception e) {
                 throw Exceptions.rethrow(e);
             }
         }
     }
 
-    private static class SuspendableCallableRunnable implements Runnable {
-        private final SuspendableCallable<?> callable;
+    private static class CallableRunnable implements Runnable {
+        private final Callable<?> callable;
 
-        public SuspendableCallableRunnable(SuspendableCallable<?> callable) {
+        public CallableRunnable(Callable<?> callable) {
             this.callable = callable;
         }
 
         @Override
         public void run() {
             try {
-                callable.run();
-            } catch (SuspendExecution ex) {
-                throw new AssertionError(ex);
+                callable.call();
             } catch (InterruptedException ex) {
             } catch (Exception e) {
                 throw Exceptions.rethrow(e);
@@ -970,8 +822,6 @@ public abstract class Strand {
         void uncaughtException(Strand f, Throwable e);
     }
 
-    protected static ThreadLocal<Strand> currentStrand = new ThreadLocal<Strand>();
-
     private static final class ThreadStrand extends Strand {
         private static final ConcurrentMap<Long, Strand> threadStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
 
@@ -989,10 +839,6 @@ public abstract class Strand {
 //                }
             }
             return s;
-        }
-
-        static Strand currStrand() {
-            return currentStrand.get();
         }
 
         private final Thread thread;
@@ -1080,7 +926,7 @@ public abstract class Strand {
         }
 
         @Override
-        public void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        public void join(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
             long nanos = unit.toNanos(timeout);
             long millis = TimeUnit.MILLISECONDS.convert(nanos, TimeUnit.NANOSECONDS);
             thread.join(millis, (int) (nanos - TimeUnit.MILLISECONDS.toNanos(millis)));
@@ -1089,12 +935,12 @@ public abstract class Strand {
         }
 
         @Override
-        public Object get() throws ExecutionException, InterruptedException {
+        public Object get() {
             return null;
         }
 
         @Override
-        public Object get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+        public Object get(long timeout, TimeUnit unit) {
             return null;
         }
 
@@ -1109,18 +955,8 @@ public abstract class Strand {
         }
 
         @Override
-        public InterruptedException getInterruptStack() {
-            return null;
-        }
-
-        @Override
         public void unpark() {
             LockSupport.unpark(thread);
-        }
-
-        @Override
-        public void unpark(Object unblocker) {
-            unpark();
         }
 
         @Override
@@ -1135,12 +971,7 @@ public abstract class Strand {
 
         @Override
         public void setUncaughtExceptionHandler(final UncaughtExceptionHandler uncaughtExceptionHandler) {
-            thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    uncaughtExceptionHandler.uncaughtException(Strand.of(t), e);
-                }
-            });
+            thread.setUncaughtExceptionHandler((t, e) -> uncaughtExceptionHandler.uncaughtException(Strand.of(t), e));
         }
 
         @Override
@@ -1168,7 +999,25 @@ public abstract class Strand {
         }
     }
 
-    private static class FiberStrand extends Strand {
+    protected static class FiberStrand extends Strand {
+        private static final ConcurrentMap<Integer, Fiber> fiberStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
+
+        public static Fiber get(java.lang.Fiber f) {
+            Fiber s = fiberStrands.get(System.identityHashCode(f));
+            if (s == null) {
+                s = new Fiber(f);
+                Fiber p = fiberStrands.putIfAbsent(System.identityHashCode(f), s);
+                if (p != null)
+                    s = p;
+//                else {
+//                    final Runnable target = ThreadAccess.getTarget(t);
+//                    if (target != null && target instanceof Stranded)
+//                        ((Stranded) target).setStrand(s);
+//                }
+            }
+            return s;
+        }
+
         private final Fiber fiber;
 
         public FiberStrand(Fiber owner) {
@@ -1268,18 +1117,8 @@ public abstract class Strand {
         }
 
         @Override
-        public InterruptedException getInterruptStack() {
-            return fiber.getInterruptStack();
-        }
-
-        @Override
         public void unpark() {
             fiber.unpark();
-        }
-
-        @Override
-        public void unpark(Object unblocker) {
-            fiber.unpark(unblocker);
         }
 
         @Override
@@ -1321,5 +1160,4 @@ public abstract class Strand {
             return this.fiber.equals(((FiberStrand) obj).fiber);
         }
     }
-    private static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
 }

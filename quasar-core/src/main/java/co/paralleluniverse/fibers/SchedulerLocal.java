@@ -15,10 +15,11 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 
 /**
- * Associates a value with the current {@link FiberScheduler}
+ * Associates a value with the current {@link Executor}
  *
  * @author pron
  */
@@ -26,20 +27,20 @@ public class SchedulerLocal<T> {
     private final Lock lock = new ReentrantLock();
 
     /**
-     * Computes the initial value for the current {@link FiberScheduler}.
+     * Computes the initial value for the current {@link Executor}.
      * Returns {@code null} by default;
      *
-     * @param scheduler the current {@link FiberScheduler}
+     * @param exec the current {@link Executor}
      * @return the initial value
      */
-    protected T initialValue(FiberScheduler scheduler) {
+    protected T initialValue(Executor exec) {
         return null;
     }
 
     /**
      * Returns the scheduler-local value of this {@code SchedulerLocal}.
      */
-    public final T get() throws SuspendExecution {
+    public final T get() {
         final FiberScheduler scheduler = currentScheduler();
         final ConcurrentMap<SchedulerLocal, Entry<?>> map = scheduler.schedLocals;
         Entry<T> entry = (Entry<T>) map.get(this);

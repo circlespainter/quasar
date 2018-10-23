@@ -21,16 +21,16 @@ import java.util.concurrent.TimeUnit;
  */
 public interface Condition extends Synchronization {
     @Override
-    public Object register();
+    Object register();
 
     @Override
-    public void unregister(Object registrationToken);
+    void unregister(Object registrationToken);
 
-    public void await(int iter) throws InterruptedException, SuspendExecution;
+    void await(int iter) throws InterruptedException;
 
-    public void await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+    void await(int iter, long timeout, TimeUnit unit) throws InterruptedException;
 
-    public void signal();
+    void signal();
 
-    public void signalAll();
+    void signalAll();
 }

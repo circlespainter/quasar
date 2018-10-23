@@ -13,9 +13,13 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Action2;
 import co.paralleluniverse.common.util.Function2;
+import co.paralleluniverse.fibers.FiberFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
+import java.util.function.Consumer;
 
 /**
  * A {@link ReceivePort} with additional functional-transform operations, usually wrapping a plain {@link ReceivePort}.
@@ -122,7 +126,7 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
      *
      * @return A {@link TransformingReceivePort} wrapping the {@code out} channel.
      */
-    public <U> TransformingReceivePort<U> fiberTransform(SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
+    public <U> TransformingReceivePort<U> fiberTransform(Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
         Channels.fiberTransform(this, out, transformer);
         return Channels.transform(out);
     }
@@ -139,7 +143,7 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
      *
      * @return A {@link TransformingReceivePort} wrapping the {@code out} channel.
      */
-    public <U> TransformingReceivePort<U> fiberTransform(FiberFactory fiberFactory, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
+    public <U> TransformingReceivePort<U> fiberTransform(FiberFactory fiberFactory, Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends U>> transformer, Channel<U> out) {
         Channels.fiberTransform(fiberFactory, this, out, transformer);
         return Channels.transform(out);
     }
@@ -150,7 +154,7 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
      *
      * @param action
      */
-    public void forEach(SuspendableAction1<T> action) throws SuspendExecution, InterruptedException {
+    public void forEach(Consumer<T> action) throws InterruptedException {
         Channels.forEach(this, action);
     }
 }

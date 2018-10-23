@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +33,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * @param message
      * @throws InterruptedException
      */
-    default void send(Message message) throws SuspendExecution, InterruptedException {
+    default void send(Message message) throws InterruptedException {
         send(message, -1, null);
     }
 
@@ -49,9 +48,8 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
-     * @throws SuspendExecution
      */
-    boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -63,9 +61,8 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * @param message
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
-     * @throws SuspendExecution
      */
-    default boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    default boolean send(Message message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -78,7 +75,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
     default boolean trySend(Message message) {
         try {
             return send(message, 0, TimeUnit.NANOSECONDS);
-        } catch (SuspendExecution | InterruptedException ex) {
+        } catch (InterruptedException ex) {
             throw new AssertionError(ex);
         }
     }

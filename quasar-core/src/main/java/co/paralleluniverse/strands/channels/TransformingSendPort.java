@@ -13,7 +13,9 @@
  */
 package co.paralleluniverse.strands.channels;
 
+import co.paralleluniverse.common.util.Action2;
 import co.paralleluniverse.common.util.Function2;
+import co.paralleluniverse.fibers.FiberFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
@@ -99,7 +101,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * 
      * @return A {@link TransformingSendPort} wrapping the {@code in} channel.
      */
-    public <U> TransformingSendPort<U> fiberTransform(SuspendableAction2<? extends ReceivePort<? super U>, ? extends SendPort<? extends T>> transformer, Channel<U> in) {
+    public <U> TransformingSendPort<U> fiberTransform(Action2<? extends ReceivePort<? super U>, ? extends SendPort<? extends T>> transformer, Channel<U> in) {
         Channels.fiberTransform(in, this, transformer);
         return Channels.transformSend(in);
     }
@@ -116,7 +118,7 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * 
      * @return A {@link TransformingSendPort} wrapping the {@code in} channel.
      */
-    public <U> TransformingSendPort<U> fiberTransform(FiberFactory fiberFactory, SuspendableAction2<? extends ReceivePort<? super U>, ? extends SendPort<? extends T>> transformer, Channel<U> in) {
+    public <U> TransformingSendPort<U> fiberTransform(FiberFactory fiberFactory, Action2<? extends ReceivePort<? super U>, ? extends SendPort<? extends T>> transformer, Channel<U> in) {
         Channels.fiberTransform(fiberFactory, in, this, transformer);
         return Channels.transformSend(in);
     }

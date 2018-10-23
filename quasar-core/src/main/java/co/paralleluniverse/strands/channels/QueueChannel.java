@@ -101,7 +101,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         sync.signalAll();
     }
 
-    protected void signalAndWait() throws SuspendExecution, InterruptedException {
+    protected void signalAndWait() {
         record("signalAndWait", "");
         if (sync instanceof OwnedSynchronizer)
             ((OwnedSynchronizer) sync).signalAndWait();
@@ -170,17 +170,17 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
+    public void send(Message message) throws InterruptedException {
         send0(message, false, false, 0);
     }
 
     @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException {
         return send0(message, false, true, unit.toNanos(timeout));
     }
 
     @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, Timeout timeout) throws InterruptedException {
         return send0(message, false, true, timeout.nanosLeft());
     }
 
@@ -197,15 +197,15 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
             return false;
     }
 
-    protected void sendSync(Message message) throws SuspendExecution {
+    protected void sendSync(Message message) {
         try {
             send0(message, true, false, 0);
         } catch (InterruptedException e) {
-            Strand.currentStrand().interrupt();
+            co.paralleluniverse.strands.Strand.currentStrand().interrupt();
         }
     }
 
-    public boolean send0(Message message, boolean sync, boolean timed, long nanos) throws SuspendExecution, InterruptedException {
+    public boolean send0(Message message, boolean sync, boolean timed, long nanos) throws InterruptedException {
         if (message == null)
             throw new IllegalArgumentException("message is null");
         if (isSendClosed())
@@ -246,7 +246,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         return true;
     }
 
-    private boolean onQueueFull(int iter, boolean timed, long nanos) throws SuspendExecution, InterruptedException, TimeoutException {
+    private boolean onQueueFull(int iter, boolean timed, long nanos) throws InterruptedException {
         switch (overflowPolicy) {
             case DROP:
                 return false;
@@ -262,9 +262,9 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
                 if (iter > MAX_SEND_RETRIES)
                     throw new QueueCapacityExceededException();
                 if (iter > 5)
-                    Strand.sleep((iter - 5) * 5);
+                    co.paralleluniverse.strands.Strand.sleep((iter - 5) * 5);
                 else if (iter > 4)
-                    Strand.yield();
+                    co.paralleluniverse.strands.Strand.yield();
                 return true;
             default:
                 throw new AssertionError("Unsupportd policy: " + overflowPolicy);
@@ -348,7 +348,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         if (receiveClosed)
             return closeValue();
 
@@ -379,7 +379,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         if (receiveClosed)
             return closeValue();
         if (unit == null)
@@ -419,24 +419,16 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     public Message receiveFromThread() throws InterruptedException {
-        try {
-            return receive();
-        } catch (SuspendExecution ex) {
-            throw new AssertionError(ex);
-        }
+        return receive();
     }
 
     public Message receiveFromThread(long timeout, TimeUnit unit) throws InterruptedException {
-        try {
-            return receive(timeout, unit);
-        } catch (SuspendExecution ex) {
-            throw new AssertionError(ex);
-        }
+        return receive(timeout, unit);
     }
 
     private void verifySync() {

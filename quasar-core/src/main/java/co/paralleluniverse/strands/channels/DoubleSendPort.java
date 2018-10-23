@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.Timeout;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -30,9 +31,8 @@ public interface DoubleSendPort extends SendPort<Double> {
      * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      *
      * @param message
-     * @throws SuspendExecution
      */
-    void send(double message) throws SuspendExecution, InterruptedException;
+    void send(double message) throws InterruptedException;
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -45,9 +45,8 @@ public interface DoubleSendPort extends SendPort<Double> {
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
-     * @throws SuspendExecution
      */
-    boolean send(double message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException;
+    boolean send(double message, long timeout, TimeUnit unit) throws InterruptedException, TimeoutException;
 
     /**
      * Sends a message to the channel, possibly blocking until there's room available in the channel, but never longer than the
@@ -59,9 +58,8 @@ public interface DoubleSendPort extends SendPort<Double> {
      * @param message
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
-     * @throws SuspendExecution
      */
-    boolean send(double message, Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException;
+    boolean send(double message, Timeout timeout) throws InterruptedException, TimeoutException;
 
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.

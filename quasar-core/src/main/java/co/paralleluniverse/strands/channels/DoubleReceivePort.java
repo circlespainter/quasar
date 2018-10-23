@@ -14,7 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.strands.Timeout;
-import co.paralleluniverse.strands.channels.ReceivePort.EOFException;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -34,7 +34,7 @@ public interface DoubleReceivePort extends ReceivePort<Double> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    double receiveDouble() throws SuspendExecution, InterruptedException, EOFException;
+    double receiveDouble() throws InterruptedException, EOFException;
 
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
@@ -47,7 +47,7 @@ public interface DoubleReceivePort extends ReceivePort<Double> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+    double receiveDouble(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException;
 
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
@@ -59,7 +59,7 @@ public interface DoubleReceivePort extends ReceivePort<Double> {
      * @throws ReceivePort.EOFException if the channel has been closed and no more messages await
      * @throws InterruptedException
      */
-    double receiveDouble(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException;
+    double receiveDouble(Timeout timeout) throws InterruptedException, TimeoutException, EOFException;
     
     /**
      * Tests whether a value is pending in the channel. If it is, the next call to {@code receiveDouble} is guaranteed not to block.

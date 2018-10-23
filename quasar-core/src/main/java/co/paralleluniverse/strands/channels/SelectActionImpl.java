@@ -85,7 +85,7 @@ public final class SelectActionImpl<Message> extends SelectAction<Message> {
             selector.setWinner(this);
     }
 
-    void fire() throws SuspendExecution {
+    void fire() {
         if (listener == null)
             return;
         if (isData)

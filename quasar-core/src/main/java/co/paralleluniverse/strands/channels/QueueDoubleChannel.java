@@ -16,6 +16,7 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.BasicSingleConsumerDoubleQueue;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -29,7 +30,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public double receiveDouble() throws SuspendExecution, InterruptedException, EOFException {
+    public double receiveDouble() throws InterruptedException, EOFException {
         checkClosed();
         awaitItem();
         final double m = queue().pollDouble();
@@ -38,7 +39,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public double receiveDouble(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
         checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
@@ -48,7 +49,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public double receiveDouble(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public double receiveDouble(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
         return receiveDouble(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -64,7 +65,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public void send(double message) throws SuspendExecution, InterruptedException {
+    public void send(double message) throws InterruptedException {
         if (isSendClosed())
             return;
         if (!queue().enq(message))
@@ -74,7 +75,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public boolean send(double message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(double message, long timeout, TimeUnit unit) throws InterruptedException {
         if (isSendClosed())
             return true;
         if (!queue().enq(message))
@@ -84,7 +85,7 @@ public class QueueDoubleChannel extends QueuePrimitiveChannel<Double> implements
     }
 
     @Override
-    public boolean send(double message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(double message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

@@ -64,7 +64,7 @@ public abstract class ChannelGroup {
         return new AsyncChannelGroup(AsynchronousChannelGroup.withThreadPool(executor));
     }
 
-    static ChannelGroup defaultGroup() throws IOException, SuspendExecution {
+    static ChannelGroup defaultGroup() throws IOException {
         return AsyncChannelGroup.getDefaultGroup();
     }
 

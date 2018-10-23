@@ -16,10 +16,8 @@ package co.paralleluniverse.strands.dataflow;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
+import java.util.concurrent.*;
 
 /**
  * A dataflow constant.
@@ -30,38 +28,34 @@ import java.util.concurrent.TimeoutException;
 public class Val<V> implements Future<V> {
     private V value;
     private Throwable t;
-    private SuspendableCallable<V> f;
+    private Callable<V> f;
     private volatile SimpleConditionSynchronizer sync = new SimpleConditionSynchronizer(this);
 
     /**
-     * Creates a {@code Val} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
+     * Creates a {@code Val} whose value will be the one returned by the given {@link Callable}, which will be spawned
      * into a new fiber.
      * <p>
      * @param f The function that will compute this {@code Val}'s value in a newly spawned fiber
      */
-    public Val(final SuspendableCallable<V> f) {
-        this(DefaultFiberScheduler.getInstance(), f);
+    public Val(final Callable<V> f) {
+        this(Executors.newWorkStealingPool(), f);
     }
 
     /**
-     * Creates a {@code Val} whose value will be the one returned by the given {@link SuspendableCallable}, which will be spawned
-     * into a new fiber, scheduled by the given {@link FiberScheduler}.
+     * Creates a {@code Val} whose value will be the one returned by the given {@link Callable}, which will be spawned
+     * into a new fiber, scheduled by the given {@link Executor}.
      * <p>
      * @param scheduler the scheduler in which the new fiber will be spawned.
      * @param f         The function that will compute this {@code Val}'s value in a newly spawned fiber
      */
-    public Val(FiberScheduler scheduler, final SuspendableCallable<V> f) {
+    public Val(Executor scheduler, final Callable<V> f) {
         this.f = f;
         if (f != null)
-            new Fiber<Void>(scheduler, new SuspendableRunnable() {
-
-                @Override
-                public void run() throws SuspendExecution {
-                    try {
-                        Val.this.set0(f.run());
-                    } catch (Throwable t) {
-                        Val.this.setException0(t);
-                    }
+            new co.paralleluniverse.fibers.Fiber<Void>(scheduler, () -> {
+                try {
+                    Val.this.set0(f.call());
+                } catch (Throwable t) {
+                    Val.this.setException0(t);
                 }
             }).start();
     }
@@ -87,7 +81,7 @@ public class Val<V> implements Future<V> {
     /**
      * Sets an exception that will be thrown by {@code get}, wrapped by {@link RuntimeExecutionException}.
      *
-     * @param Throwable t the exception
+     * @param t the exception
      * @throws IllegalStateException if the value has already been set.
      */
     public final void setException(Throwable t) {
@@ -137,23 +131,19 @@ public class Val<V> implements Future<V> {
      */
     @Override
     public V get() throws InterruptedException {
-        try {
-            final SimpleConditionSynchronizer s = sync;
-            if (s != null) {
-                Object token = s.register();
-                try {
-                    for (int i = 0; sync != null; i++)
-                        s.await(i);
-                } finally {
-                    s.unregister(token);
-                }
+        final SimpleConditionSynchronizer s = sync;
+        if (s != null) {
+            Object token = s.register();
+            try {
+                for (int i = 0; sync != null; i++)
+                    s.await(i);
+            } finally {
+                s.unregister(token);
             }
-            if (t != null)
-                throw new RuntimeExecutionException(t);
-            return value;
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
         }
+        if (t != null)
+            throw new RuntimeExecutionException(t);
+        return value;
     }
 
     /**
@@ -167,32 +157,28 @@ public class Val<V> implements Future<V> {
      */
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
-        try {
-            final SimpleConditionSynchronizer s = sync;
-            if (s != null) {
-                Object token = s.register();
-                try {
-                    final long start = System.nanoTime();
-                    long left = unit.toNanos(timeout);
-                    final long deadline = start + left;
-                    for (int i = 0; sync != null; i++) {
-                        s.awaitNanos(i, left);
-                        if (sync == null)
-                            break;
-                        left = deadline - System.nanoTime();
-                        if (left <= 0)
-                            throw new TimeoutException();
-                    }
-                } finally {
-                    s.unregister(token);
+        final SimpleConditionSynchronizer s = sync;
+        if (s != null) {
+            Object token = s.register();
+            try {
+                final long start = System.nanoTime();
+                long left = unit.toNanos(timeout);
+                final long deadline = start + left;
+                for (int i = 0; sync != null; i++) {
+                    s.awaitNanos(i, left);
+                    if (sync == null)
+                        break;
+                    left = deadline - System.nanoTime();
+                    if (left <= 0)
+                        throw new TimeoutException();
                 }
+            } finally {
+                s.unregister(token);
             }
-            if (t != null)
-                throw t instanceof CancellationException ? (CancellationException) t : new RuntimeExecutionException(t);
-            return value;
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
         }
+        if (t != null)
+            throw t instanceof CancellationException ? (CancellationException) t : new RuntimeExecutionException(t);
+        return value;
     }
 
     public V get(Timeout timeout) throws InterruptedException, TimeoutException {

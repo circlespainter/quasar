@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +30,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}).
      * @throws InterruptedException
      */
-    default Message receive() throws SuspendExecution, InterruptedException {
+    default Message receive() throws InterruptedException {
         return receive(-1, null);
     }
 
@@ -43,7 +42,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
      * @throws InterruptedException
      */
-    Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException;
+    Message receive(long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Retrieves a message from the channels, possibly blocking until one becomes available, but no longer than the specified timeout.
@@ -52,7 +51,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
      * @throws InterruptedException
      */
-    default Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    default Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -64,16 +63,15 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
     default Message tryReceive() {
         try {
             return receive(0, TimeUnit.NANOSECONDS);
-        } catch (SuspendExecution | InterruptedException ex) {
+        } catch (InterruptedException ex) {
             throw new AssertionError(ex);
         }
     }
 
-    public static class EOFException extends Exception {
+    class EOFException extends Exception {
         public static EOFException instance = new EOFException();
 
-        private EOFException() {
-        }
+        private EOFException() {}
 
         @Override
         public synchronized Throwable fillInStackTrace() {

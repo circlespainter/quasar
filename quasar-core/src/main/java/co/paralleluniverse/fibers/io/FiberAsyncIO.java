@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers.io;
 
 import co.paralleluniverse.common.util.CheckedCallable;
+import co.paralleluniverse.fibers.FiberAsync;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeoutException;
  */
 abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
     protected CompletionHandler<V, Fiber> makeCallback() {
-        return new CompletionHandler<V, Fiber>() {
+        return new CompletionHandler<>() {
             @Override
             public void completed(V result, Fiber attachment) {
                 FiberAsyncIO.this.asyncCompleted(result);
@@ -42,7 +43,7 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
     }
 
     @Override
-    public V run() throws IOException, SuspendExecution {
+    public V run() throws IOException {
         try {
             return super.run();
         } catch (InterruptedException e) {
@@ -51,7 +52,7 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
     }
 
     @Override
-    public V run(long timeout, TimeUnit unit) throws IOException, SuspendExecution, TimeoutException {
+    public V run(long timeout, TimeUnit unit) throws IOException, TimeoutException {
         try {
             return super.run(timeout, unit);
         } catch (InterruptedException e) {
@@ -64,8 +65,6 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
             return super.run();
         } catch (InterruptedException e) {
             throw new IOException(e);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
         }
     }
 
@@ -74,8 +73,6 @@ abstract class FiberAsyncIO<V> extends FiberAsync<V, IOException> {
             return FiberAsync.runBlocking(exec, callable);
         } catch (InterruptedException e) {
             throw new IOException(e);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
         }
     }
 }

@@ -31,14 +31,14 @@ abstract class SendPortTransformer<S, T> implements SendPort<S>, DelegatingEqual
     }
 
     @Override
-    public void send(S message) throws SuspendExecution, InterruptedException {
+    public void send(S message) throws InterruptedException {
         final T m = transform(message);
         if (m != null)
             target.send(m);
     }
 
     @Override
-    public boolean send(S message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(S message, long timeout, TimeUnit unit) throws InterruptedException {
         final T m = transform(message);
         if (m != null)
             return target.send(m, timeout, unit);
@@ -46,7 +46,7 @@ abstract class SendPortTransformer<S, T> implements SendPort<S>, DelegatingEqual
     }
 
     @Override
-    public boolean send(S message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(S message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

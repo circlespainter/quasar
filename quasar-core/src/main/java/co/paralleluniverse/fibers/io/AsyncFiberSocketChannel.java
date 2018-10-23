@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -17,12 +17,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.ByteChannel;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.ScatteringByteChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.channels.spi.AsynchronousChannelProvider;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +41,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public void connect(final SocketAddress remote) throws IOException, SuspendExecution {
+    public void connect(final SocketAddress remote) throws IOException {
         new FiberAsyncIO<Void>() {
             @Override
             protected void requestAsync() {
@@ -56,7 +51,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, SuspendExecution, TimeoutException {
+    public void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, TimeoutException {
         new FiberAsyncIO<Void>() {
             @Override
             protected void requestAsync() {
@@ -66,7 +61,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
+    public long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException {
         return new FiberAsyncIO<Long>() {
             @Override
             protected void requestAsync() {
@@ -76,7 +71,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
+    public int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync() {
@@ -86,7 +81,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
+    public long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException {
         return new FiberAsyncIO<Long>() {
             @Override
             protected void requestAsync() {
@@ -96,7 +91,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     }
 
     @Override
-    public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution {
+    public int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException {
         return new FiberAsyncIO<Integer>() {
             @Override
             protected void requestAsync() {
@@ -107,11 +102,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
 
     @Override
     public long read(ByteBuffer[] dsts, int offset, int length) throws IOException {
-        try {
-            return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
+        return read(dsts, offset, length, 0L, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -121,20 +112,12 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
 
     @Override
     public int read(ByteBuffer dst) throws IOException {
-        try {
-            return read(dst, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
+        return read(dst, 0L, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public long write(ByteBuffer[] srcs, int offset, int length) throws IOException {
-        try {
-            return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
+        return write(srcs, offset, length, 0L, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -144,11 +127,7 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
 
     @Override
     public int write(final ByteBuffer src) throws IOException {
-        try {
-            return write(src, 0L, TimeUnit.MILLISECONDS);
-        } catch (SuspendExecution e) {
-            throw new AssertionError();
-        }
+        return write(src, 0L, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -203,9 +182,5 @@ final class AsyncFiberSocketChannel extends FiberSocketChannel implements ByteCh
     @Override
     public Set<SocketOption<?>> supportedOptions() {
         return ac.supportedOptions();
-    }
-
-    private int remotePort() throws IOException {
-        return ((java.net.InetSocketAddress) ac.getRemoteAddress()).getPort();
     }
 }

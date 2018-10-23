@@ -27,17 +27,17 @@ public class DelegatingReceivePort<T> implements ReceivePort<T>, DelegatingEqual
     }
 
     @Override
-    public T receive() throws SuspendExecution, InterruptedException {
+    public T receive() throws InterruptedException {
         return target.receive();
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public T receive(long timeout, TimeUnit unit) throws InterruptedException {
         return target.receive(timeout, unit);
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public T receive(Timeout timeout) throws InterruptedException {
         return target.receive(timeout);
     }
 

@@ -45,7 +45,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
+    public static FiberSocketChannel open(ChannelGroup group) throws IOException {
         if (group == null)
             group = ChannelGroup.defaultGroup();
         return group.newFiberSocketChannel();
@@ -58,7 +58,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @return A new socket channel
      * @throws IOException If an I/O error occurs
      */
-    public static FiberSocketChannel open() throws IOException, SuspendExecution {
+    public static FiberSocketChannel open() throws IOException {
         return open((ChannelGroup) null);
     }
 
@@ -86,7 +86,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *                                         and it does not permit access to the given remote endpoint
      * @throws IOException                     If some other I/O error occurs
      */
-    public static FiberSocketChannel open(SocketAddress remote) throws IOException, SuspendExecution {
+    public static FiberSocketChannel open(SocketAddress remote) throws IOException {
         final FiberSocketChannel channel = open();
         channel.connect(remote);
         return channel;
@@ -117,7 +117,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *                                         and it does not permit access to the given remote endpoint
      * @throws IOException                     If some other I/O error occurs
      */
-    public static FiberSocketChannel open(ChannelGroup group, SocketAddress remote) throws IOException, SuspendExecution {
+    public static FiberSocketChannel open(ChannelGroup group, SocketAddress remote) throws IOException {
         final FiberSocketChannel channel = open(group);
         channel.connect(remote);
         return channel;
@@ -150,7 +150,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *
      * @see #getRemoteAddress
      */
-    public abstract void connect(final SocketAddress remote) throws IOException, SuspendExecution;
+    public abstract void connect(final SocketAddress remote) throws IOException;
 
     /**
      * Connects this channel.
@@ -182,7 +182,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *
      * @see #getRemoteAddress
      */
-    public abstract void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, SuspendExecution, TimeoutException;
+    public abstract void connect(final SocketAddress remote, final long timeout, final TimeUnit timeUnit) throws IOException, TimeoutException;
 
     /**
      * Reads a sequence of bytes from this channel into a subsequence of the
@@ -249,7 +249,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public abstract long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
+    public abstract long read(final ByteBuffer[] dsts, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException;
 
     /**
      * Reads a sequence of bytes from this channel into the given buffer.
@@ -284,7 +284,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public abstract int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
+    public abstract int read(final ByteBuffer dst, final long timeout, final TimeUnit unit) throws IOException;
 
     /**
      * Writes a sequence of bytes to this channel from a subsequence of the given
@@ -344,7 +344,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public abstract long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
+    public abstract long write(final ByteBuffer[] srcs, final int offset, final int length, final long timeout, final TimeUnit unit) throws IOException;
 
     /**
      * Writes a sequence of bytes to this channel from the given buffer.
@@ -376,7 +376,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * @throws ShutdownChannelGroupException If the channel group has terminated
      * @throws InterruptedByTimeoutException If a timeout is specified and the timeout elapses before the operation completes
      */
-    public abstract int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException, SuspendExecution;
+    public abstract int write(final ByteBuffer src, final long timeout, final TimeUnit unit) throws IOException;
 
     /**
      * @throws NotYetConnectedException If this channel is not yet connected

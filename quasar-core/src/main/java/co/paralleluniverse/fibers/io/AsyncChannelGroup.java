@@ -59,9 +59,9 @@ final class AsyncChannelGroup extends ChannelGroup {
     private static final SchedulerLocal<AsyncChannelGroup> defaultGroup = new SchedulerLocal<AsyncChannelGroup>() {
 
         @Override
-        protected AsyncChannelGroup initialValue(FiberScheduler scheduler) {
+        protected AsyncChannelGroup initialValue(Executor exec) {
             try {
-                return new AsyncChannelGroup(AsynchronousChannelGroup.withThreadPool(protectScheduler(scheduler)));
+                return new AsyncChannelGroup(AsynchronousChannelGroup.withThreadPool(protectScheduler(exec)));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -73,12 +73,11 @@ final class AsyncChannelGroup extends ChannelGroup {
 //    public static AsynchronousChannelGroup newDefaultGroup() throws IOException {
 //        return AsynchronousChannelGroup.withFixedThreadPool(1, NIO_THREAD_FACTORY);
 //    }
-    static AsyncChannelGroup getDefaultGroup() throws IOException, SuspendExecution {
+    static AsyncChannelGroup getDefaultGroup() throws IOException {
         return defaultGroup.get();
     }
 
-    static ExecutorService protectScheduler(FiberScheduler scheduler) {
-        final Executor exec = scheduler.getExecutor();
+    static ExecutorService protectScheduler(Executor exec) {
         return new ExecutorService() {
 
             @Override

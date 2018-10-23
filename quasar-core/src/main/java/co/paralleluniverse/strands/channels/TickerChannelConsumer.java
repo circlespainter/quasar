@@ -76,7 +76,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         return consumer.hasNext();
     }
     
-    void attemptReceive() throws EOFException, SuspendExecution, InterruptedException {
+    void attemptReceive() throws EOFException, InterruptedException {
         checkClosed();
         final Condition sync = channel.sync;
         Object token = sync.register();
@@ -94,7 +94,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
     }
 
-    void attemptReceive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    void attemptReceive(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
         checkClosed();
         final Condition sync = channel.sync;
         long left = unit.toNanos(timeout);
@@ -129,7 +129,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         try {
             attemptReceive();
             return (Message) consumer.getAndClearReadValue();
@@ -139,7 +139,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         try {
             attemptReceive(timeout, unit);
             return (Message) consumer.getAndClearReadValue();
@@ -151,7 +151,7 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -206,19 +206,19 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public int receiveInt() throws SuspendExecution, InterruptedException, EOFException {
+        public int receiveInt() throws InterruptedException, EOFException {
             attemptReceive();
             return consumer().getIntValue();
         }
 
         @Override
-        public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public int receiveInt(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getIntValue();
         }
 
         @Override
-        public int receiveInt(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public int receiveInt(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
             return receiveInt(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
@@ -233,19 +233,19 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public long receiveLong() throws SuspendExecution, InterruptedException, EOFException {
+        public long receiveLong() throws InterruptedException, EOFException {
             attemptReceive();
             return consumer().getLongValue();
         }
 
         @Override
-        public long receiveLong(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public long receiveLong(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getLongValue();
         }
 
         @Override
-        public long receiveLong(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public long receiveLong(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
             return receiveLong(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
@@ -260,19 +260,19 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public float receiveFloat() throws SuspendExecution, InterruptedException, EOFException {
+        public float receiveFloat() throws InterruptedException, EOFException {
             attemptReceive();
             return consumer().getFloatValue();
         }
 
         @Override
-        public float receiveFloat(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public float receiveFloat(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getFloatValue();
         }
 
         @Override
-        public float receiveFloat(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public float receiveFloat(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
             return receiveFloat(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 
@@ -287,19 +287,19 @@ public class TickerChannelConsumer<Message> implements ReceivePort<Message>, Sel
         }
 
         @Override
-        public double receiveDouble() throws SuspendExecution, InterruptedException, EOFException {
+        public double receiveDouble() throws InterruptedException, EOFException {
             attemptReceive();
             return consumer().getDoubleValue();
         }
 
         @Override
-        public double receiveDouble(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public double receiveDouble(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
             attemptReceive(timeout, unit);
             return consumer().getDoubleValue();
         }
 
         @Override
-        public double receiveDouble(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+        public double receiveDouble(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
             return receiveDouble(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         }
 

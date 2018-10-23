@@ -67,7 +67,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
+    public void send(Message message) throws InterruptedException {
         if (message == null)
             throw new IllegalArgumentException("message is null");
         if (isSendClosed())
@@ -77,20 +77,20 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
     }
 
     @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException {
         if (message == null)
             throw new IllegalArgumentException("message is null");
         if (isSendClosed())
             return true;
         if (xfer1(message, true, TIMED, unit.toNanos(timeout)) == null)
             return true;
-        if (!Strand.interrupted())
+        if (!co.paralleluniverse.strands.Strand.interrupted())
             return false;
         throw new InterruptedException();
     }
 
     @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -176,7 +176,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         if (receiveClosed)
             return closeValue();
 
@@ -191,12 +191,12 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
         throw new InterruptedException();
     }
 
-    protected Message receiveInternal(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    protected Message receiveInternal(long timeout, TimeUnit unit) throws  InterruptedException {
         if (receiveClosed)
             return closeValue();
 
         Object m = xfer1(null, false, TIMED, unit.toNanos(timeout));
-        if (m != null || !Strand.interrupted()) {
+        if (m != null || !co.paralleluniverse.strands.Strand.interrupted()) {
             if (m == CHANNEL_CLOSED)
                 return closeValue();
             return (Message) m;
@@ -205,12 +205,12 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         return receiveInternal(timeout, unit);
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(Timeout timeout) throws InterruptedException {
         return receiveInternal(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -235,7 +235,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             if (!p.isMatched()) {
                 if (!p.isData) {
                     if (p.casItem(null, CHANNEL_CLOSED)) // match waiting requesters with CHANNEL_CLOSED
-                        Strand.unpark(p.waiter, this);   // ... and wake 'em up
+                        co.paralleluniverse.strands.Strand.unpark(p.waiter, this);   // ... and wake 'em up
                 } else
                     p.tryMatchData();
             }
@@ -289,7 +289,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
         volatile SelectActionImpl sa;
         volatile Object item;   // initially non-null if isData; CASed to match
         volatile Node next;
-        volatile Strand waiter; // null until waiting
+        volatile co.paralleluniverse.strands.Strand waiter; // null until waiting
 
         // CAS methods for fields
         final boolean casNext(Node cmp, Node val) {
@@ -373,7 +373,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             // assert isData;
             Object x = item;
             if (x != null && x != this && casItem(x, null)) {
-                Strand.unpark(waiter, this);
+                co.paralleluniverse.strands.Strand.unpark(waiter, this);
                 return true;
             }
             return false;
@@ -490,7 +490,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
      * @return an item if matched, else e
      * @throws NullPointerException if haveData mode but e is null
      */
-    private Object xfer1(Message e, boolean haveData, int how, long nanos) throws SuspendExecution {
+    private Object xfer1(Message e, boolean haveData, int how, long nanos) {
         assert how == SYNC || how == TIMED;
         if (haveData && (e == null))
             throw new NullPointerException();
@@ -542,7 +542,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
                 return new Token(s, null);
             }
 
-            requestUnpark(s, Strand.currentStrand());
+            requestUnpark(s, co.paralleluniverse.strands.Strand.currentStrand());
             return new Token(s, pred);
         }
     }
@@ -688,9 +688,9 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
      * @param nanos timeout in nanosecs, used only if timed is true
      * @return matched item, or e if unmatched on interrupt or timeout
      */
-    private Message awaitMatch(Node s, Node pred, Message e, boolean timed, long nanos) throws SuspendExecution {
+    private Message awaitMatch(Node s, Node pred, Message e, boolean timed, long nanos) {
         long lastTime = timed ? System.nanoTime() : 0L;
-        Strand w = Strand.currentStrand();
+        co.paralleluniverse.strands.Strand w = co.paralleluniverse.strands.Strand.currentStrand();
         int spins = (w.isFiber() ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
         ThreadLocalRandom randomYields = null; // bound if needed
 
@@ -720,21 +720,21 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             } else if (spins > 0) {           // spin
                 --spins;
                 if (randomYields.nextInt(CHAINED_SPINS) == 0)
-                    Strand.yield();           // occasionally yield
+                    co.paralleluniverse.strands.Strand.yield();           // occasionally yield
             } else if (s.waiter == null) {
                 requestUnpark(s, w);          // request unpark then recheck
             } else if (timed) {
                 long now = System.nanoTime();
                 if ((nanos -= now - lastTime) > 0)
-                    Strand.parkNanos(this, nanos);
+                    co.paralleluniverse.strands.Strand.parkNanos(this, nanos);
                 lastTime = now;
             } else {
-                Strand.park(this);
+                co.paralleluniverse.strands.Strand.park(this);
             }
         }
     }
 
-    private void requestUnpark(Node s, Strand waiter) {
+    private void requestUnpark(Node s, co.paralleluniverse.strands.Strand waiter) {
         s.waiter = waiter;
     }
 

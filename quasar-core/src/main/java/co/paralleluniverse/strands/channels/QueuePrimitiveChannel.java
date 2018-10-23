@@ -24,29 +24,29 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implements Stranded {
-    private Strand owner;
+    private co.paralleluniverse.strands.Strand owner;
 
     public QueuePrimitiveChannel(BasicSingleConsumerQueue<Message> queue, OverflowPolicy policy) {
         super(queue, policy, true);
     }
 
     @Override
-    public void setStrand(Strand strand) {
+    public void setStrand(co.paralleluniverse.strands.Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
     }
 
     @Override
-    public Strand getStrand() {
+    public co.paralleluniverse.strands.Strand getStrand() {
         return owner;
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
         if (owner == null)
-            setStrand(Strand.currentStrand());
+            setStrand(co.paralleluniverse.strands.Strand.currentStrand());
         else {
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) from that owning this object";
+            assert co.paralleluniverse.strands.Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (thread or fiber) from that owning this object";
         }
     }
 
@@ -62,7 +62,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         return queue().hasNext();
     }
     
-    boolean awaitItem() throws SuspendExecution, InterruptedException, EOFException {
+    boolean awaitItem() throws InterruptedException, EOFException {
         maybeSetCurrentStrandAsOwner();
         Object n;
         Object token = sync.register();
@@ -77,7 +77,7 @@ public class QueuePrimitiveChannel<Message> extends QueueChannel<Message> implem
         return true;
     }
 
-    boolean awaitItem(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, EOFException {
+    boolean awaitItem(long timeout, TimeUnit unit) throws InterruptedException, EOFException {
         if (unit == null)
             return awaitItem();
         if (timeout <= 0)

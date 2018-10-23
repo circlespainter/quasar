@@ -29,7 +29,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public int receiveInt() throws SuspendExecution, InterruptedException, EOFException {
+    public int receiveInt() throws InterruptedException, EOFException {
         checkClosed();
         awaitItem();
         final int m = queue().pollInt();
@@ -38,7 +38,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public int receiveInt(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public int receiveInt(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException, EOFException {
         checkClosed();
         if (!awaitItem(timeout, unit))
             throw new TimeoutException();
@@ -48,7 +48,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public int receiveInt(Timeout timeout) throws SuspendExecution, InterruptedException, TimeoutException, EOFException {
+    public int receiveInt(Timeout timeout) throws InterruptedException, TimeoutException, EOFException {
         return receiveInt(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -64,7 +64,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public void send(int message) throws SuspendExecution, InterruptedException {
+    public void send(int message) throws InterruptedException {
         if (isSendClosed())
             return;
         if (!queue().enq(message))
@@ -74,7 +74,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public boolean send(int message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(int message, long timeout, TimeUnit unit) throws InterruptedException {
         if (isSendClosed())
             return true;
         if (!queue().enq(message))
@@ -84,7 +84,7 @@ public class QueueIntChannel extends QueuePrimitiveChannel<Integer> implements I
     }
 
     @Override
-    public boolean send(int message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(int message, Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

@@ -13,11 +13,8 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.common.util.DelegatingEquals;
-import co.paralleluniverse.common.util.Function2;
-import co.paralleluniverse.common.util.Function3;
-import co.paralleluniverse.common.util.Function4;
-import co.paralleluniverse.common.util.Function5;
+import co.paralleluniverse.common.util.*;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.queues.ArrayQueue;
 import co.paralleluniverse.strands.queues.BasicQueue;
@@ -46,7 +43,9 @@ import com.google.common.base.Predicate;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * A utility class for creating and manipulating channels.
@@ -82,7 +81,6 @@ public final class Channels {
     private static final OverflowPolicy defaultPolicy = OverflowPolicy.BLOCK;
     private static final boolean defaultSingleProducer = false;
     private static final boolean defaultSingleConsumer = true;
-    private static final FiberFactory defaultFiberFactory = DefaultFiberScheduler.getInstance();
 
     /**
      * Creates a new channel with the given properties.
@@ -515,21 +513,17 @@ public final class Channels {
      * @param out          the output channel
      * @param transformer  the transforming operation
      */
-    public static <S, T> void fiberTransform(FiberFactory fiberFactory, final ReceivePort<S> in, final SendPort<T> out, final SuspendableAction2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
-        fiberFactory.newFiber(new SuspendableCallable<Void>() {
-
-            @Override
-            public Void run() throws SuspendExecution, InterruptedException {
-                try {
-                    ((SuspendableAction2) transformer).call(in, out);
-                    out.close();
-                } catch (ProducerException e) {
-                    out.close(e.getCause());
-                } catch (Throwable t) {
-                    out.close(t);
-                }
-                return null;
+    public static <S, T> void fiberTransform(FiberFactory fiberFactory, final ReceivePort<S> in, final SendPort<T> out, final Action2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
+        fiberFactory.newFiber((Callable<Void>) () -> {
+            try {
+                ((Action2) transformer).call(in, out);
+                out.close();
+            } catch (ProducerException e) {
+                out.close(e.getCause());
+            } catch (Throwable t) {
+                out.close(t);
             }
+            return null;
         }).start();
     }
 
@@ -543,7 +537,7 @@ public final class Channels {
      * @param out         the output channel
      * @param transformer the transforming operation
      */
-    public static <S, T> void fiberTransform(final ReceivePort<S> in, final SendPort<T> out, final SuspendableAction2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
+    public static <S, T> void fiberTransform(final ReceivePort<S> in, final SendPort<T> out, final Action2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
         fiberTransform(defaultFiberFactory, in, out, transformer);
     }
 
@@ -687,10 +681,10 @@ public final class Channels {
      * @param channel the channel
      * @param action  the actions
      */
-    public static <T> void forEach(ReceivePort<T> channel, SuspendableAction1<T> action) throws SuspendExecution, InterruptedException {
+    public static <T> void forEach(ReceivePort<T> channel, Consumer<T> action) throws InterruptedException {
         T m;
         while ((m = channel.receive()) != null) {
-            action.call(m);
+            action.accept(m);
         }
     }
 
@@ -859,10 +853,10 @@ public final class Channels {
      * @return a {@link ReceivePort} that returns messages that are the result of applying the mapping function to the messages received on the given channel.
      */
     public static <S, T> SendPort<S> flatMapSend(FiberFactory fiberFactory, Channel<S> pipe, SendPort<T> channel, final Function<S, ReceivePort<T>> f) {
-        fiberTransform(fiberFactory, pipe, channel, new SuspendableAction2<ReceivePort<S>, SendPort<T>>() {
+        fiberTransform(fiberFactory, pipe, channel, new Action2<ReceivePort<S>, SendPort<T>>() {
 
             @Override
-            public void call(ReceivePort<S> in, SendPort<T> out) throws SuspendExecution, InterruptedException {
+            public void call(ReceivePort<S> in, SendPort<T> out) throws InterruptedException {
                 S x;
                 while ((x = in.receive()) != null) {
                     ReceivePort<T> xp = f.apply(x);

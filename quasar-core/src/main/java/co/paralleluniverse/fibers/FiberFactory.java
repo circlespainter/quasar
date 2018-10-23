@@ -14,11 +14,11 @@
 
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.strands.SuspendableCallable;
+import java.util.concurrent.Callable;
 
 /**
  * Creates new {@link Fiber fibers} on demand.
  */
 public interface FiberFactory {
-    <T> Fiber<T> newFiber(SuspendableCallable<T> target);
+    <T> Fiber<T> newFiber(Callable<T> target);
 }

@@ -43,7 +43,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * @throws ShutdownChannelGroupException If the channel group is shutdown
      * @throws IOException                   If an I/O error occurs
      */
-    public static FiberServerSocketChannel open(ChannelGroup group) throws IOException, SuspendExecution {
+    public static FiberServerSocketChannel open(ChannelGroup group) throws IOException {
         if (group == null)
             group = ChannelGroup.defaultGroup();
         return group.newFiberServerSocketChannel();
@@ -56,7 +56,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * @return A new server socket channel
      * @throws IOException If an I/O error occurs
      */
-    public static FiberServerSocketChannel open() throws IOException, SuspendExecution {
+    public static FiberServerSocketChannel open() throws IOException {
         return open(null);
     }
 
@@ -91,7 +91,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * @throws NotYetBoundException          If this channel's socket has not yet been bound
      * @throws ShutdownChannelGroupException If the channel group has terminated
      */
-    public abstract FiberSocketChannel accept() throws IOException, SuspendExecution;
+    public abstract FiberSocketChannel accept() throws IOException;
 
     @Override
     public abstract boolean isOpen();

@@ -20,5 +20,5 @@ package co.paralleluniverse.strands.channels;
  * @author pron
  */
 public interface SelectSendListener<Message> extends SelectListener<Message> {
-    void onSend() throws SuspendExecution;
+    void onSend();
 }

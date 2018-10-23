@@ -14,5 +14,5 @@ package co.paralleluniverse.common.util;
 
 
 public interface Action2<S1, S2> {
-    void call(S1 x1, S2 x2);
+    void call(S1 x1, S2 x2) throws InterruptedException;
 }

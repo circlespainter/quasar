@@ -79,7 +79,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     public ReceivePortGroup() {
-        this(ImmutableList.<ReceivePort<? extends M>>of(), alwaysOpenDefault);
+        this(ImmutableList.of(), alwaysOpenDefault);
     }
 
     @Override
@@ -93,17 +93,17 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public M receive() throws SuspendExecution, InterruptedException {
+    public M receive() throws InterruptedException {
         return receive(-1, null);
     }
 
     @Override
-    public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+    public M receive(final Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
-    public M receive(final long timeout, final TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public M receive(final long timeout, final TimeUnit unit) throws InterruptedException {
 
         if (isClosed())
             return null;
@@ -232,7 +232,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void add(final T... items) throws SuspendExecution, InterruptedException {
+    public <T extends ReceivePort<? extends M>> void add(final T... items) throws InterruptedException {
         if (items != null && items.length > 0) {
             final List<T> itemsCopy = ImmutableList.copyOf(items); // Freeze for this call
             states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
@@ -249,7 +249,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void remove(final T... items) throws SuspendExecution, InterruptedException {
+    public <T extends ReceivePort<? extends M>> void remove(final T... items) throws InterruptedException {
         if (items == null || items.length == 0)
             states.set(ImmutableMap.<T, State>of()); // Reset
         else {
@@ -295,7 +295,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) throws SuspendExecution, InterruptedException {
+    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) throws InterruptedException {
         final ImmutableList<T> itemsCopy = ImmutableList.copyOf(items);
         states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
             @Override
@@ -317,7 +317,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> newStates) throws SuspendExecution, InterruptedException {
+    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> newStates) throws InterruptedException {
         if (newStates != null) {
             final Map<T, State> newStatesSnapshot = ImmutableMap.copyOf(newStates); // Freeze
             states.swap(new Function<Map<? extends ReceivePort<? extends M>, State>, Map<? extends ReceivePort<? extends M>, State>>() {
@@ -351,7 +351,7 @@ public class ReceivePortGroup<M> implements Mix<M> {
     }
 
     @Override
-    public void setSoloEffect(final SoloEffect effect) throws SuspendExecution, InterruptedException {
+    public void setSoloEffect(final SoloEffect effect) throws InterruptedException {
         soloEffect.set(effect);
         changedCh.send(ping);
     }
