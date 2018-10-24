@@ -50,21 +50,21 @@ class TakeReceivePort<M> extends TransformingReceivePort<M> {
     }
 
     @Override
-    public M receive() throws SuspendExecution, InterruptedException {
+    public M receive() throws InterruptedException {
         return timedReceive(-1, null);
     }
 
     @Override
-    public M receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+    public M receive(final Timeout timeout) throws InterruptedException {
         return timedReceive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
-    public M receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public M receive(final long timeout, final TimeUnit unit) throws InterruptedException {
         return timedReceive(timeout, unit);
     }
 
-    private M timedReceive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+    private M timedReceive(final long timeout, final TimeUnit unit) throws InterruptedException {
         // Register in order to receive wakeup signals when waiting in the monitor
         final Object ticket = monitor.register();
 

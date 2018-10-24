@@ -29,22 +29,16 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import java.util.concurrent.TimeoutException;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
     private static final boolean USE_LOCKFREE_DELAY_QUEUE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.useLockFreeDelayQueue");
-    private static final boolean DETECT_RUNAWAY_FIBERS = SystemProperties.isNotFalse("co.paralleluniverse.fibers.detectRunawayFibers");
 
     /**
      * The duration of a single fiber run that is considered a problem
@@ -55,10 +49,6 @@ public class FiberTimedScheduler {
      * We're currently feeding the fj-pool sequentially (from a single thread).
      * We can use a custom implementation of a skip-list, and use it to feed the pool in a forking manner.
      */
-    private static final boolean BACKPRESSURE = true;
-    private static final int BACKPRESSURE_MASK = (1 << 10) - 1;
-    private static final int BACKPRESSURE_THRESHOLD = 1200;
-    private static final int BACKPRESSURE_PAUSE_MS = 1;
     private static final AtomicInteger nameSuffixSequence = new AtomicInteger();
     private final Thread worker;
     private final BlockingQueue<ScheduledFutureTask> workQueue;
@@ -68,12 +58,12 @@ public class FiberTimedScheduler {
     private static final int TERMINATED = 2;
     private volatile int state = RUNNING;
     private final ReentrantLock mainLock = new ReentrantLock();
-    private final FiberScheduler scheduler;
+    private final Executor scheduler;
     private final FibersMonitor monitor;
     private Map<Thread, FiberInfo> fibersInfo = new IdentityHashMap<Thread, FiberInfo>();
 
     @SuppressWarnings("CallToThreadStartDuringObjectConstruction")
-    public FiberTimedScheduler(FiberScheduler scheduler, ThreadFactory threadFactory, FibersMonitor monitor) {
+    public FiberTimedScheduler(Executor scheduler, ThreadFactory threadFactory, FibersMonitor monitor) {
         this.scheduler = scheduler;
         this.worker = threadFactory.newThread(new Runnable() {
             @Override
@@ -88,7 +78,7 @@ public class FiberTimedScheduler {
         worker.start();
     }
 
-    public FiberTimedScheduler(FiberScheduler scheduler, FibersMonitor monitor) {
+    public FiberTimedScheduler(Executor scheduler, FibersMonitor monitor) {
         this(scheduler, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -99,7 +89,7 @@ public class FiberTimedScheduler {
         }, monitor);
     }
 
-    public FiberTimedScheduler(FiberScheduler scheduler) {
+    public FiberTimedScheduler(Executor scheduler) {
         this(scheduler, null);
     }
 
@@ -123,23 +113,10 @@ public class FiberTimedScheduler {
 
                     if (task != null && !task.isCancelled()) {
                         long delay = task.delay;
-                        if (BACKPRESSURE && (counter & BACKPRESSURE_MASK) == 0) {
-                            while (scheduler.getQueueLength() > BACKPRESSURE_THRESHOLD)
-                                Thread.sleep(BACKPRESSURE_PAUSE_MS);
-                            delay = now() - task.time;
-                        }
                         if (monitor != null)
                             monitor.timedParkLatency(delay);
 
                         run(task);
-                    }
-
-                    if (DETECT_RUNAWAY_FIBERS) {
-                        final long now = System.nanoTime();
-                        if (now - lastRanFindProblemFibers >= MAX_RUN_DURATION >>> 1) {
-                            reportProblemFibers(findProblemFibers(now, MAX_RUN_DURATION));
-                            lastRanFindProblemFibers = now;
-                        }
                     }
                 } catch (InterruptedException e) {
                     if (state != RUNNING) {
@@ -178,8 +155,8 @@ public class FiberTimedScheduler {
 
     private void run(ScheduledFutureTask task) {
         try {
-            final Fiber fiber = task.fiber;
-            fiber.unpark(task.blocker);
+            final co.paralleluniverse.fibers.Fiber fiber = task.fiber;
+            fiber.unpark();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -401,68 +378,6 @@ public class FiberTimedScheduler {
 
     public boolean isTerminated() {
         return !worker.isAlive();
-    }
-
-    private Collection<Fiber> findProblemFibers(long now, long nanos) {
-        final List<Fiber> pfs = new ArrayList<Fiber>();
-        final Map<Thread, Fiber> fibs = scheduler.getRunningFibers();
-
-        if (fibs == null)
-            return null;
-
-        fibersInfo.keySet().retainAll(fibs.keySet());
-
-        for (Iterator<Map.Entry<Thread, Fiber>> it = fibs.entrySet().iterator(); it.hasNext();) {
-            final Map.Entry<Thread, Fiber> entry = it.next();
-            final Thread t = entry.getKey();
-            final Fiber f = entry.getValue();
-
-            if (f != null)
-                f.getState(); // volatile read
-
-            final FiberInfo fi = fibersInfo.get(t);
-            final long run = f != null ? f.getRun() : 0;
-//            if (f != null)
-//                System.err.println("XXX findProblemFibers f: " + f + " run: " + run + " time: " + (fi != null ? (now - fi.time) : "NA"));
-            if (fi == null)
-                fibersInfo.put(t, new FiberInfo(f, run, f != null ? now : -1));
-            else if (fi.fiber != f | fi.run != run)
-                fi.set(f, run, f != null ? now : -1);
-            else if (f != null & now - fi.time > nanos)
-                pfs.add(f);
-        }
-        return pfs;
-    }
-
-    private void reportProblemFibers(Collection<Fiber> fs) {
-        scheduler.getMonitor().setRunawayFibers(fs);
-
-        if (fs == null)
-            return;
-
-        loop:
-        for (Fiber f : fs) {
-            Thread t = f.getRunningThread();
-            StackTraceElement[] stackTrace = f.getStackTrace();
-            if (stackTrace != null) {
-                for (StackTraceElement ste : stackTrace) { // don't report on classloading
-                    if ("defineClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
-                        continue loop;
-                    if ("loadClass".equals(ste.getMethodName()) && "java.lang.ClassLoader".equals(ste.getClassName()))
-                        continue loop;
-                    if ("forName".equals(ste.getMethodName()) && "java.lang.Class".equals(ste.getClassName()))
-                        continue loop;
-                }
-            }
-
-            if (t == null || t.getState() == Thread.State.RUNNABLE)
-                System.err.println("WARNING: fiber " + f + " is hogging the CPU or blocking a thread.");
-//            else if (t.getState() == Thread.State.RUNNABLE)
-//                System.err.println("WARNING: fiber " + f + " is hogging the CPU (" + t + ").");
-            else
-                System.err.println("WARNING: fiber " + f + " is blocking a thread (" + t + ").");
-            Strand.printStackTrace(stackTrace, System.err);
-        }
     }
 
     private static class FiberInfo {

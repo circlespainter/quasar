@@ -48,10 +48,6 @@ public class NoopFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
-    } 
-
-    @Override
     public void unregister() {
     }
 }

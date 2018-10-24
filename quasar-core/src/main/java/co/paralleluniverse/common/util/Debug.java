@@ -133,7 +133,7 @@ public class Debug {
 
     @SuppressWarnings("CallToThreadDumpStack")
     public static void exit(int code, Throwable t, String filename) {
-        final Strand currentStrand = Strand.currentStrand();
+        final co.paralleluniverse.strands.Strand currentStrand = co.paralleluniverse.strands.Strand.currentStrand();
         if (flightRecorder != null) {
             flightRecorder.record(1, "DEBUG EXIT REQUEST ON STRAND " + currentStrand + ": " + Arrays.toString(currentStrand.getStackTrace()));
             if (t != null)

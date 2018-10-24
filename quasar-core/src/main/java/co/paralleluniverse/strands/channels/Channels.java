@@ -14,6 +14,7 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.*;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.queues.ArrayQueue;
@@ -538,7 +539,7 @@ public final class Channels {
      * @param transformer the transforming operation
      */
     public static <S, T> void fiberTransform(final ReceivePort<S> in, final SendPort<T> out, final Action2<? extends ReceivePort<? super S>, ? extends SendPort<? extends T>> transformer) {
-        fiberTransform(defaultFiberFactory, in, out, transformer);
+        fiberTransform(DefaultFiberFactory.getInstance(), in, out, transformer);
     }
 
     /**
@@ -872,7 +873,7 @@ public final class Channels {
     }
 
     public static <S, T> SendPort<S> flatMapSend(Channel<S> pipe, SendPort<T> channel, final Function<S, ReceivePort<T>> f) {
-        return flatMapSend(defaultFiberFactory, pipe, channel, f);
+        return flatMapSend(DefaultFiberFactory.getInstance(), pipe, channel, f);
     }
 
     /**

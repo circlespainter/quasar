@@ -13,10 +13,11 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.strands.concurrent.ReentrantLock;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Associates a value with the current {@link Executor}
@@ -25,6 +26,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class SchedulerLocal<T> {
     private final Lock lock = new ReentrantLock();
+    private static final WeakHashMap<SchedulerLocal, ConcurrentMap<SchedulerLocal, Entry<?>>> schedLocals = new WeakHashMap<>();
 
     /**
      * Computes the initial value for the current {@link Executor}.
@@ -41,8 +43,8 @@ public class SchedulerLocal<T> {
      * Returns the scheduler-local value of this {@code SchedulerLocal}.
      */
     public final T get() {
-        final FiberScheduler scheduler = currentScheduler();
-        final ConcurrentMap<SchedulerLocal, Entry<?>> map = scheduler.schedLocals;
+        final Executor scheduler = currentScheduler();
+        final ConcurrentMap<SchedulerLocal, Entry<?>> map = schedLocals.get(scheduler);
         Entry<T> entry = (Entry<T>) map.get(this);
         if (entry == null) {
             lock.lock();
@@ -70,14 +72,14 @@ public class SchedulerLocal<T> {
 
     /**
      * Removes the association between the scheduler-local value and the current scheduler.
-     * The next call to {@link #get()} would return the initial value returned by a fresh call to {@link #initialValue(FiberScheduler) initialValue}.
+     * The next call to {@link #get()} would return the initial value returned by a fresh call to {@link #initialValue(Executor) initialValue}.
      */
     public final void remove() {
         getMap().remove(this);
     }
 
     private static ConcurrentMap<SchedulerLocal, Entry<?>> getMap() {
-        return currentScheduler().schedLocals;
+        return schedLocals.get(currentScheduler());
     }
 
     private Entry<T> getEntry(ConcurrentMap<SchedulerLocal, Entry<?>> map) {
@@ -91,7 +93,7 @@ public class SchedulerLocal<T> {
         return entry;
     }
 
-    private static FiberScheduler currentScheduler() {
+    private static Executor currentScheduler() {
         final Fiber currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
             throw new IllegalStateException("Method called not within a fiber");

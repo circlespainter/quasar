@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.dataflow;
 
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.RuntimeExecutionException;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import co.paralleluniverse.strands.Timeout;
@@ -38,7 +39,7 @@ public class Val<V> implements Future<V> {
      * @param f The function that will compute this {@code Val}'s value in a newly spawned fiber
      */
     public Val(final Callable<V> f) {
-        this(Executors.newWorkStealingPool(), f);
+        this(DefaultFiberScheduler.getInstance(), f);
     }
 
     /**

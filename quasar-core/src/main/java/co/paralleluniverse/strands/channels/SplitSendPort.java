@@ -51,17 +51,17 @@ public abstract class SplitSendPort<Message> implements SendPort<Message> {
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
+    public void send(Message message) throws InterruptedException {
         send(message, -1, null);
     }
 
     @Override
-    public boolean send(final Message message, final Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(final Message message, final Timeout timeout) throws InterruptedException {
         return send(message, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
     @Override
-    public boolean send(final Message message, final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(final Message message, final long timeout, final TimeUnit unit) throws InterruptedException {
         if (!closed) {
             final SendPort<? super Message> target = select(message);
             if (unit == null)

@@ -13,10 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
-import java.util.Map;
-
 /**
- * An MXBean that monitors fibers scheduled by a single {@link FiberScheduler}.
+ * An MXBean that monitors fibers scheduled by a single {@link java.util.concurrent.Executor}.
  *
  * @author pron
  */
@@ -38,14 +36,6 @@ public interface FibersMXBean {
      */
     int getNumWaitingFibers();
 
-    int getTimedQueueLength();
-    
-    /**
-     * The fibers (and respective stack traces) that are currently holding their thread for a lengthy duration, either due to blocking
-     * or a lengthy loop.
-     */
-    Map<String, String> getRunawayFibers();
-    
     long getSpuriousWakeups();
 
     /**
@@ -58,22 +48,4 @@ public interface FibersMXBean {
      * The IDs of all fibers in the scheduler. {@code null} if the scheduler has been constructed with {@code detailedInfo} equal to {@code false}.
      */
     long[] getAllFiberIds();
-
-    /**
-     * Returns a {@link FiberInfo} object for a single fiber. Returns {@code null} if the scheduler has been constructed with {@code detailedInfo} equal to {@code false}.
-     *
-     * @param id    the fiber's id.
-     * @param stack whether the fiber's call stack is required.
-     * @return a {@link FiberInfo} object for a single fiber, or {@code null} if the scheduler has been constructed with {@code detailedInfo} equal to {@code false}.
-     */
-    FiberInfo getFiberInfo(long id, boolean stack);
-
-    /**
-     * Returns an array {@link FiberInfo} objects for a set of fibers. Returns {@code null} if the scheduler has been constructed with {@code detailedInfo} equal to {@code false}.
-     *
-     * @param ids   the fibers' ids.
-     * @param stack whether the fibers' call stack is required.
-     * @return an array {@link FiberInfo} objects for a set of fibers, or {@code null} if the scheduler has been constructed with {@code detailedInfo} equal to {@code false}.
-     */
-    FiberInfo[] getFiberInfo(long[] ids, boolean stack);
 }

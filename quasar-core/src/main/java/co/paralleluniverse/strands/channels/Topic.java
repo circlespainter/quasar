@@ -72,20 +72,21 @@ public class Topic<Message> implements PubSub<Message> {
     }
 
     @Override
-    public void send(Message message) throws SuspendExecution, InterruptedException {
+    public void send(Message message) throws InterruptedException {
         if (sendClosed)
             return;
+
         for (SendPort<? super Message> sub : subscribers)
             sub.send(message);
     }
 
     @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, Timeout timeout) throws  InterruptedException {
         throw new UnsupportedOperationException();
     }
 

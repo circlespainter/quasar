@@ -35,7 +35,7 @@ class ReducingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements 
     }
 
     @Override
-    public T receive(final Timeout timeout) throws SuspendExecution, InterruptedException {
+    public T receive(final Timeout timeout) throws InterruptedException {
         return checkReceivedAtLeastOnce(super.receive(timeout));
     }
 
@@ -45,7 +45,7 @@ class ReducingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements 
     }
 
     @Override
-    public T receive() throws SuspendExecution, InterruptedException {
+    public T receive() throws InterruptedException {
         return checkReceivedAtLeastOnce(super.receive());
     }
 
@@ -55,7 +55,7 @@ class ReducingReceivePort<S, T> extends ReceivePortTransformer<S, T> implements 
     }
 
     @Override
-    public T receive(final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public T receive(final long timeout, final TimeUnit unit) throws InterruptedException {
         return checkReceivedAtLeastOnce(super.receive(timeout, unit));
     }
 

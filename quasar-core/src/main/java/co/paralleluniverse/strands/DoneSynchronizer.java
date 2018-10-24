@@ -27,11 +27,11 @@ public class DoneSynchronizer implements Condition {
     }
 
     @Override
-    public void await(int iter) throws InterruptedException, SuspendExecution {
+    public void await(int iter) {
     }
 
     @Override
-    public void await(int iter, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public void await(int iter, long timeout, TimeUnit unit) {
     }
 
     @Override

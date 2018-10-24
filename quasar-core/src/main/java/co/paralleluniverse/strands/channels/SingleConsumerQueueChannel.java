@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author pron
  */
 public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> implements Stranded {
-    private Strand owner;
+    private co.paralleluniverse.strands.Strand owner;
 
     public SingleConsumerQueueChannel(SingleConsumerQueue<Message> queue, OverflowPolicy policy) {
         super(queue, policy, true);
@@ -39,22 +39,22 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     }
 
     @Override
-    public void setStrand(Strand strand) {
+    public void setStrand(co.paralleluniverse.strands.Strand strand) {
         if (owner != null && strand != owner)
             throw new IllegalStateException("Channel " + this + " is already owned by " + owner);
         this.owner = strand;
     }
 
     @Override
-    public Strand getStrand() {
+    public co.paralleluniverse.strands.Strand getStrand() {
         return owner;
     }
 
     protected void maybeSetCurrentStrandAsOwner() {
         if (owner == null)
-            setStrand(Strand.currentStrand());
+            setStrand(co.paralleluniverse.strands.Strand.currentStrand());
         else
-            assert Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (" + Strand.currentStrand() + ") from that owning this object (" + owner + ")";
+            assert co.paralleluniverse.strands.Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (" + Strand.currentStrand() + ") from that owning this object (" + owner + ")";
     }
 
     protected void checkClosed() throws EOFException {
@@ -76,7 +76,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         if (isClosed())
             return null;
         try {
@@ -103,7 +103,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         if (isClosed())
             return null;
         if (unit == null)

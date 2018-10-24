@@ -34,6 +34,4 @@ public interface FibersMonitor {
     void timedParkLatency(long ns);
     
     void unregister();
-    
-    void setRunawayFibers(Collection<Fiber> fs);
 }

@@ -50,7 +50,7 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
 
     @Override
     @SuppressWarnings("empty-statement")
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         for (int i = 0; i < targets.length; i++) {
             if (ms[i] == null) {
                 Object m = targets[i].receive();
@@ -76,7 +76,7 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
 
@@ -93,7 +93,7 @@ public class ZippingReceivePort<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

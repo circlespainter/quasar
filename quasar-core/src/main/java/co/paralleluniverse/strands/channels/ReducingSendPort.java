@@ -14,7 +14,12 @@
 package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Function2;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.strands.DefaultStrandFactory;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.Timeout;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -24,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author circlespainter
  */
 class ReducingSendPort<S, T> extends SendPortTransformer<S, T> {
-    private static final StrandFactory strandFactoryDefault = DefaultFiberScheduler.getInstance();
+    private static final StrandFactory strandFactoryDefault = DefaultStrandFactory.getInstance();
 
     private final Function2<T, S, T> f;
     private final AtomicBoolean closedBeforeFirstSend = new AtomicBoolean(true);
@@ -47,13 +52,11 @@ class ReducingSendPort<S, T> extends SendPortTransformer<S, T> {
     public void close(final Throwable t) {
         if (!closing.getAndSet(true)) {
             if (closedBeforeFirstSend.get()) {
-                strandFactory.newStrand(SuspendableUtils.runnableToCallable(new SuspendableRunnable() {
-                    @Override
-                    public void run() throws SuspendExecution, InterruptedException {
-                        target.send(prev);
-                        superClose(t);
-                    }
-                })).start();
+                strandFactory.newStrand((Callable<Void>) () -> {
+                    target.send(prev);
+                    superClose(t);
+                    return null;
+                }).start();
             } else {
                 superClose(t);
             }
@@ -79,19 +82,19 @@ class ReducingSendPort<S, T> extends SendPortTransformer<S, T> {
     }
 
     @Override
-    public boolean send(final S message, final Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(final S message, final Timeout timeout) throws InterruptedException {
         closedBeforeFirstSend.set(false);
         return super.send(message, timeout);
     }
 
     @Override
-    public boolean send(final S message, final long timeout, final TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(final S message, final long timeout, final TimeUnit unit) throws InterruptedException {
         closedBeforeFirstSend.set(false);
         return super.send(message, timeout, unit);
     }
 
     @Override
-    public void send(final S message) throws SuspendExecution, InterruptedException {
+    public void send(final S message) throws InterruptedException {
         closedBeforeFirstSend.set(false);
         super.send(message);
     }

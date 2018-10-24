@@ -22,7 +22,7 @@ import org.cliffc.high_scale_lib.NonBlockingHashMapLong.IteratorLong;
  * @author pron
  */
 class FibersDetailedMonitor {
-    private final NonBlockingHashMapLong<Fiber> fibers = new NonBlockingHashMapLong<Fiber>();
+    private final NonBlockingHashMapLong<co.paralleluniverse.fibers.Fiber> fibers = new NonBlockingHashMapLong<>();
 
     void fiberStarted(Fiber fiber) {
         fibers.put(fiber.getId(), fiber);
@@ -47,17 +47,4 @@ class FibersDetailedMonitor {
             return ids; // might not include all nw fibers
     }
 
-    public FiberInfo getFiberInfo(long id, boolean stack) {
-        final Fiber f = fibers.get(id);
-        if (f == null)
-            return null;
-        return f.getFiberInfo(stack);
-    }
-
-    public FiberInfo[] getFiberInfo(long[] ids, boolean stack) {
-        FiberInfo[] fis = new FiberInfo[ids.length];
-        for (int i = 0; i < ids.length; i++)
-            fis[i] = getFiberInfo(ids[i], stack);
-        return fis;
-    }
 }

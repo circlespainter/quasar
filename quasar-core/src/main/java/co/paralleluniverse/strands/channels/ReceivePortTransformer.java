@@ -27,7 +27,7 @@ abstract class ReceivePortTransformer<S, T> extends DelegatingReceivePort1<S, T>
 
     @Override
     @SuppressWarnings("empty-statement")
-    public T receive() throws SuspendExecution, InterruptedException {
+    public T receive() throws InterruptedException {
         for (;;) {
             S m0 = target.receive();
             if (m0 == null) // closed
@@ -51,7 +51,7 @@ abstract class ReceivePortTransformer<S, T> extends DelegatingReceivePort1<S, T>
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public T receive(long timeout, TimeUnit unit) throws InterruptedException {
         long left = unit.toNanos(timeout);
         final long deadline = System.nanoTime() + left;
 
@@ -67,7 +67,7 @@ abstract class ReceivePortTransformer<S, T> extends DelegatingReceivePort1<S, T>
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public T receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

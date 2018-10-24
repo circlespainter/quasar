@@ -24,6 +24,8 @@ import co.paralleluniverse.strands.channels.ReceivePort;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 
 /**
  * A dataflow variable.
@@ -39,7 +41,7 @@ public class Var<T> {
     private static final Object NULL = new Object();
 
     private final Channel<T> ch;
-    private final SuspendableCallable<T> f;
+    private final Callable<T> f;
     private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<VarFiber<?>, Boolean>newConcurrentHashMap());
 
     private final ThreadLocal<TLVar> tlv = new ThreadLocal<TLVar>() {
@@ -65,11 +67,11 @@ public class Var<T> {
      * by {@code f} change value.
      *
      * @param history   how many historical values to maintain for each strand reading the var.
-     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
+     * @param scheduler the {@link Executor} to use to schedule the fiber that will run, and re-run {@code f}.
      * @param f         this var's value is set to the return value of {@code f}
      * @see #get()
      */
-    public Var(int history, FiberScheduler scheduler, SuspendableCallable<T> f) {
+    public Var(int history, Executor scheduler, Callable<T> f) {
         if (history < 0)
             throw new IllegalArgumentException("history must be >= 0, but is " + history);
         this.ch = Channels.newChannel(1 + history, Channels.OverflowPolicy.DISPLACE);
@@ -88,7 +90,7 @@ public class Var<T> {
      * @param f         this var's value is set to the return value of {@code f}
      * @see #get()
      */
-    public Var(int history, SuspendableCallable<T> f) {
+    public Var(int history, Callable<T> f) {
         this(history, null, f);
     }
 
@@ -97,12 +99,10 @@ public class Var<T> {
      * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
      * by {@code f} change value. The fiber running {@code f} will be scheduled by the default fiber scheduler.
      *
-     * @param history   how many historical values to maintain for each strand reading the var.
-     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
      * @param f         this var's value is set to the return value of {@code f}
      * @see #get()
      */
-    public Var(SuspendableCallable<T> f) {
+    public Var(Callable<T> f) {
         this(0, null, f);
     }
 
@@ -111,11 +111,11 @@ public class Var<T> {
      * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
      * by {@code f} change value.
      *
-     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
+     * @param scheduler the {@link Executor} to use to schedule the fiber that will run, and re-run {@code f}.
      * @param f         this var's value is set to the return value of {@code f}
      * @see #get()
      */
-    public Var(FiberScheduler scheduler, SuspendableCallable<T> f) {
+    public Var(Executor scheduler, Callable<T> f) {
         this(0, scheduler, f);
     }
 
@@ -160,10 +160,10 @@ public class Var<T> {
      * Returns the Var's current value (more precisely: it returns the oldest value in the maintained history that has
      * not yet been returned), unless this Var does not yet have a value; only in that case will this method block.
      */
-    public T get() throws SuspendExecution, InterruptedException {
+    public T get() throws InterruptedException {
         TLVar tl = tlv.get();
         if (tl.type == UNKNOWN) {
-            Fiber currentFiber = Fiber.currentFiber();
+            co.paralleluniverse.fibers.Fiber currentFiber = co.paralleluniverse.fibers.Fiber.currentFiber();
             if (currentFiber != null && currentFiber instanceof VarFiber) {
                 final VarFiber<?> vf = (VarFiber<?>) currentFiber;
                 tl.type = VARFIBER;
@@ -200,7 +200,7 @@ public class Var<T> {
     /**
      * Blocks until a new value has been set and returns it.
      */
-    public T getNext() throws SuspendExecution, InterruptedException {
+    public T getNext() throws InterruptedException {
         TLVar tl = tlv.get();
         final T val;
         val = tl.c.receive();
@@ -208,12 +208,12 @@ public class Var<T> {
         return val;
     }
 
-    private static class VarFiber<T> extends Fiber<Void> {
+    private static class VarFiber<T> extends co.paralleluniverse.fibers.Fiber<Void> {
         private final WeakReference<Var<T>> var;
         final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.<Var<?>, Boolean>newConcurrentHashMap());
         private volatile boolean hasNewVal;
 
-        VarFiber(FiberScheduler scheduler, Var<T> v) {
+        VarFiber(Executor scheduler, Var<T> v) {
             super(scheduler);
             this.var = new WeakReference<Var<T>>(v);
         }
@@ -229,7 +229,7 @@ public class Var<T> {
         }
 
         @Override
-        protected Void run() throws SuspendExecution, InterruptedException {
+        protected Void run() throws  InterruptedException {
             Var<T> v = null;
             try {
                 for (;;) {

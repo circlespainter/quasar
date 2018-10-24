@@ -14,9 +14,11 @@
 
 package co.paralleluniverse.strands;
 
+import java.util.concurrent.Callable;
+
 /**
  * Creates new {@link Strand strands} on demand.
  */
 public interface StrandFactory {
-    Strand newStrand(SuspendableCallable<?> target);
+    Strand newStrand(Callable<?> target);
 }

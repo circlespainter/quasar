@@ -13,11 +13,10 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
-import co.paralleluniverse.fibers.FiberScheduler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -28,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * You can construct a new instance of this builder and use the builder pattern
  * (call the setter methods followed by {@link #build() build()}) to create a new {@code StrandFactory},
  * or use one of the static {@code from} methods to convert a {@link ThreadFactory} or {@link FiberFactory} into a {@code StrandFactory}.
- * When using the builder pattern, either {@link #setFiber(FiberScheduler) setFiber} or {@link #setThread(boolean) setThread} must be called
+ * When using the builder pattern, either {@link #setFiber(Executor) setFiber} or {@link #setThread(boolean) setThread} must be called
  * prior to calling {@link #build() build()}.
  *
  * @author pron
@@ -39,12 +38,7 @@ public class StrandFactoryBuilder {
      */
     public static StrandFactory from(final ThreadFactory tf) {
         checkNotNull(tf);
-        return new StrandFactory() {
-            @Override
-            public Strand newStrand(SuspendableCallable<?> target) {
-                return Strand.of(tf.newThread(Strand.toRunnable(target)));
-            }
-        };
+        return target -> Strand.of(tf.newThread(Strand.toRunnable(target)));
     }
 
     /**
@@ -52,17 +46,12 @@ public class StrandFactoryBuilder {
      */
     public static StrandFactory from(final FiberFactory ff) {
         checkNotNull(ff);
-        return new StrandFactory() {
-            @Override
-            public Strand newStrand(SuspendableCallable<?> target) {
-                return ff.newFiber(target);
-            }
-        };
+        return target -> ff.newFiber(target);
     }
 
     private Boolean fiber;
     private boolean daemon;
-    private FiberScheduler fs;
+    private Executor fs;
     private String nameFormat;
     private Integer stackSize;
     private Integer priority;
@@ -84,10 +73,10 @@ public class StrandFactoryBuilder {
     /**
      * Makes the resulting {@link StrandFactory} produce fibers.
      *
-     * @param fs the {@link FiberScheduler} to use for the new fibers, or {@code null} for the default scheduler.
+     * @param fs the {@link Executor} to use for the new fibers, or {@code null} for the default scheduler.
      * @return {@code this}
      */
-    public StrandFactoryBuilder setFiber(FiberScheduler fs) {
+    public StrandFactoryBuilder setFiber(Executor fs) {
         this.fiber = true;
         this.fs = fs;
         return this;
@@ -137,10 +126,10 @@ public class StrandFactoryBuilder {
     }
 
     /**
-     * Sets the {@link UncaughtExceptionHandler} for new threads created with this
+     * Sets the {@link Strand.UncaughtExceptionHandler} for new threads created with this
      * ThreadFactory.
      *
-     * @param uncaughtExceptionHandler the uncaught exception handler
+     * @param ueh the uncaught exception handler
      * @return {@code this}
      */
     public StrandFactoryBuilder setUncaughtExceptionHandler(Strand.UncaughtExceptionHandler ueh) {
@@ -158,35 +147,32 @@ public class StrandFactoryBuilder {
             throw new IllegalStateException("setFiber or setThread must be called before calling build");
         final boolean _fiber = fiber;
         final boolean _daemon = daemon;
-        final FiberScheduler _fs = fs;
+        final Executor _fs = fs;
         final String _nameFormat = nameFormat;
         final Strand.UncaughtExceptionHandler _ueh = ueh;
         final int _stackSize = stackSize != null ? stackSize : 0;
         final Integer _priority = priority;
         final AtomicLong _count = (nameFormat != null) ? new AtomicLong(0) : null;
 
-        return new StrandFactory() {
-            @Override
-            public Strand newStrand(SuspendableCallable<?> target) {
-                final String name = _nameFormat != null ? String.format(_nameFormat, _count.getAndIncrement()) : null;
-                final Strand s;
-                if (_fiber) {
-                    s = _fs != null ? new Fiber(name, _fs, _stackSize, target) : new Fiber(name, _stackSize, target);
-                } else {
-                    final Thread t = new Thread(null, Strand.toRunnable(target),
-                            name != null ? name : "Thread-" + nextThreadNum(),
-                              _stackSize);
-                    if (name != null)
-                        t.setName(name);
-                    t.setDaemon(_daemon);
-                    if (_priority != null)
-                        t.setPriority(_priority);
-                    s = Strand.of(t);
-                }
-                if (_ueh != null)
-                    s.setUncaughtExceptionHandler(_ueh);
-                return s;
+        return target -> {
+            final String name = _nameFormat != null ? String.format(_nameFormat, _count.getAndIncrement()) : null;
+            final Strand s;
+            if (_fiber) {
+                s = _fs != null ? new co.paralleluniverse.fibers.Fiber(name, _fs, target) : new co.paralleluniverse.fibers.Fiber(name, target);
+            } else {
+                final Thread t = new Thread(null, Strand.toRunnable(target),
+                        name != null ? name : "Thread-" + nextThreadNum(),
+                          _stackSize);
+                if (name != null)
+                    t.setName(name);
+                t.setDaemon(_daemon);
+                if (_priority != null)
+                    t.setPriority(_priority);
+                s = Strand.of(t);
             }
+            if (_ueh != null)
+                s.setUncaughtExceptionHandler(_ueh);
+            return s;
         };
 
     }

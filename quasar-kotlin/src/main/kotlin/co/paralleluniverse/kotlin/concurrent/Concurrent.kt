@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.kotlin.concurrent
 
-import co.paralleluniverse.strands.concurrent.ReentrantReadWriteLock
 import java.util.concurrent.CountDownLatch
 
 /**

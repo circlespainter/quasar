@@ -44,7 +44,7 @@ import java.util.concurrent.locks.LockSupport;
  *
  * @author pron
  */
-public final class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
+public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final Object RESET = new Object();
     private static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 

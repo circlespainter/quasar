@@ -42,17 +42,17 @@ class PipeChannel<T> implements SendPort<T>, DelegatingEquals {
     }
 
     @Override
-    public void send(T message) throws SuspendExecution, InterruptedException {
+    public void send(T message) throws InterruptedException {
         pipe.send(message);
     }
 
     @Override
-    public boolean send(T message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(T message, long timeout, TimeUnit unit) throws InterruptedException {
         return pipe.send(message, timeout, unit);
     }
 
     @Override
-    public boolean send(T message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(T message, Timeout timeout) throws InterruptedException {
         return pipe.send(message, timeout);
     }
 

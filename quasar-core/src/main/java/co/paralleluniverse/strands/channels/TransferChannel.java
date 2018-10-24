@@ -235,7 +235,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             if (!p.isMatched()) {
                 if (!p.isData) {
                     if (p.casItem(null, CHANNEL_CLOSED)) // match waiting requesters with CHANNEL_CLOSED
-                        co.paralleluniverse.strands.Strand.unpark(p.waiter, this);   // ... and wake 'em up
+                        co.paralleluniverse.strands.Strand.unpark(p.waiter);   // ... and wake 'em up
                 } else
                     p.tryMatchData();
             }
@@ -373,7 +373,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             // assert isData;
             Object x = item;
             if (x != null && x != this && casItem(x, null)) {
-                co.paralleluniverse.strands.Strand.unpark(waiter, this);
+                co.paralleluniverse.strands.Strand.unpark(waiter);
                 return true;
             }
             return false;
@@ -624,7 +624,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
                                     || (q = h.next) == null || !q.isMatched())
                                 break;        // unless slack < 2
                         }
-                        Strand.unpark(p.waiter, this);
+                        co.paralleluniverse.strands.Strand.unpark(p.waiter);
                         return item;
                     } else
                         p.returnLease();

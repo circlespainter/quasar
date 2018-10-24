@@ -86,48 +86,40 @@ public class AbstractFuture<V> implements Future<V> {
 
     @Override
     public V get() throws InterruptedException, ExecutionException {
-        try {
-            if (done)
-                return getValue();
-
-            Object token = sync.register();
-            try {
-                for (int i = 0; !done; i++)
-                    sync.await(i);
-            } finally {
-                sync.unregister(token);
-            }
+        if (done)
             return getValue();
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
+
+        Object token = sync.register();
+        try {
+            for (int i = 0; !done; i++)
+                sync.await(i);
+        } finally {
+            sync.unregister(token);
         }
+        return getValue();
     }
 
     @Override
     public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        try {
-            if (done)
-                return getValue();
-
-            long left = unit.toNanos(timeout);
-            final long deadline = System.nanoTime() + left;
-
-            Object token = sync.register();
-            try {
-                for (int i = 0; !done; i++) {
-                    sync.await(i, left, TimeUnit.NANOSECONDS);
-
-                    left = deadline - System.nanoTime();
-                    if (left <= 0)
-                        throw new TimeoutException();
-                }
-            } finally {
-                sync.unregister(token);
-            }
+        if (done)
             return getValue();
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
+
+        long left = unit.toNanos(timeout);
+        final long deadline = System.nanoTime() + left;
+
+        Object token = sync.register();
+        try {
+            for (int i = 0; !done; i++) {
+                sync.await(i, left, TimeUnit.NANOSECONDS);
+
+                left = deadline - System.nanoTime();
+                if (left <= 0)
+                    throw new TimeoutException();
+            }
+        } finally {
+            sync.unregister(token);
         }
+        return getValue();
     }
 
     private V getValue() throws ExecutionException {

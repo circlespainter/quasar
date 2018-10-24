@@ -37,7 +37,7 @@ public class ValChannel<V> implements ReceivePort<V>, Selectable<V> {
     }
 
     @Override
-    public V receive() throws SuspendExecution, InterruptedException {
+    public V receive() throws InterruptedException {
         if (closed.get())
             return null;
         final V v = dv.get();
@@ -57,7 +57,7 @@ public class ValChannel<V> implements ReceivePort<V>, Selectable<V> {
     }
 
     @Override
-    public V receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public V receive(long timeout, TimeUnit unit) throws InterruptedException {
         if (closed.get())
             return null;
         final V v;
@@ -71,7 +71,7 @@ public class ValChannel<V> implements ReceivePort<V>, Selectable<V> {
     }
 
     @Override
-    public V receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public V receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
         
     }

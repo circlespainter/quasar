@@ -20,6 +20,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanNotificationInfo;
@@ -34,13 +35,13 @@ import javax.management.ObjectName;
 import javax.management.StandardEmitterMBean;
 
 /**
- * A JMX Mbean that monitors fibers runningin a single {@link FiberScheduler}.
+ * A JMX Mbean that monitors fibers runningin a single {@link Executor}.
  *
  * @author pron
  */
 class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, NotificationListener, FibersMXBean {
     private final String mbeanName;
-    private final FiberScheduler scheduler;
+    private final Executor scheduler;
     private boolean registered;
     private long lastCollectTime;
     private final FibersDetailedMonitor details;
@@ -55,7 +56,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     private Map<Fiber, StackTraceElement[]> problemFibers;
     private long notificationSequenceNumber = 1;
 
-    public JMXFibersMonitor(String name, FiberScheduler scheduler, boolean detailedInfo) {
+    public JMXFibersMonitor(String name, Executor scheduler, boolean detailedInfo) {
         super(FibersMXBean.class, true, new NotificationBroadcasterSupport());
         this.scheduler = scheduler;
         this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
@@ -185,44 +186,6 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     }
 
     @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
-        if (fs == null || fs.isEmpty())
-            this.problemFibers = null;
-        else {
-            Map<Fiber, StackTraceElement[]> map = new HashMap<>();
-            for (Fiber f : fs) {
-                Thread t = f.getRunningThread();
-                final String status;
-                if (t == null)
-                    status = "hogging the CPU or blocking a thread";
-                else if (t.getState() == Thread.State.RUNNABLE)
-                    status = "hogging the CPU (" + t + ")";
-                else
-                    status = "blocking a thread (" + t + ")";
-                StackTraceElement[] st = f.getStackTrace();
-
-                Map<Fiber, StackTraceElement[]> pf = problemFibers;
-                if (pf == null || !pf.containsKey(f)) {
-                    Notification n = new RunawayFiberNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
-                            "Runaway fiber " + f.getName() + " is " + status + ":\n" + Strand.toString(st));
-                    sendNotification(n);
-                }
-
-                map.put(f, st);
-            }
-            this.problemFibers = map;
-        }
-    }
-
-    @Override
-    public Map<String, String> getRunawayFibers() {
-        Map<String, String> map = new HashMap<>();
-        for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
-            map.put(e.getKey().toString(), Strand.toString(e.getValue()));
-        return map;
-    }
-
-    @Override
     public int getNumActiveFibers() {
         return (int)activeCount.get();
     }
@@ -236,11 +199,6 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     @Override
     public int getNumWaitingFibers() {
         return (int)waitingCount.get();
-    }
-
-    @Override
-    public int getTimedQueueLength() {
-        return scheduler.getTimedQueueLength();
     }
 
     @Override
@@ -258,20 +216,6 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
         if (details == null)
             return null;
         return details.getAllFiberIds();
-    }
-
-    @Override
-    public FiberInfo getFiberInfo(long id, boolean stack) {
-        if (details == null)
-            return null;
-        return details.getFiberInfo(id, stack);
-    }
-
-    @Override
-    public FiberInfo[] getFiberInfo(long[] ids, boolean stack) {
-        if (details == null)
-            return null;
-        return details.getFiberInfo(ids, stack);
     }
 
     private static class RunawayFiberNotification extends Notification {

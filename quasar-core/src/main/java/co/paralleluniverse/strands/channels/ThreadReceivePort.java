@@ -41,13 +41,9 @@ public class ThreadReceivePort<Message> {
      * @throws InterruptedException
      */
     public Message receive() throws InterruptedException {
-        if (Strand.isCurrentFiber())
+        if (co.paralleluniverse.strands.Strand.isCurrentFiber())
             throw new IllegalStateException("This method cannot be called on a fiber");
-        try {
-            return p.receive();
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
-        }
+        return p.receive();
     }
 
     /**
@@ -60,13 +56,10 @@ public class ThreadReceivePort<Message> {
      * @throws InterruptedException
      */
     public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
-        if (Strand.isCurrentFiber())
+        if (co.paralleluniverse.strands.Strand.isCurrentFiber())
             throw new IllegalStateException("This method cannot be called on a fiber");
-        try {
-            return p.receive(timeout, unit);
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
-        }
+
+        return p.receive(timeout, unit);
     }
 
     /**

@@ -34,23 +34,12 @@ class MetricsFibersMonitor implements FibersMonitor {
     private final Counter waitingCount;
     private final Meter spuriousWakeups;
     private final Histogram timedParkLatency;
-    private final Gauge<Map<String, String>> runawayFibers;
-    private Map<Fiber, StackTraceElement[]> problemFibers;
 
     public MetricsFibersMonitor(String name) {
         this.activeCount = Metrics.counter(metric(name, "numActiveFibers"));
         this.waitingCount = Metrics.counter(metric(name, "numWaitingFibers"));
         this.spuriousWakeups = Metrics.meter(metric(name, "spuriousWakeups"));
         this.timedParkLatency = Metrics.histogram(metric(name, "timedParkLatency"));
-        this.runawayFibers = () -> {
-            Map<String, String> map = new HashMap<>();
-            if (problemFibers != null) {
-                for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
-                    map.put(e.getKey().toString(), Strand.toString(e.getValue()));
-            }
-            return map;
-        };
-        Metrics.register("runawayFibers", runawayFibers);
     }
 
     protected final String metric(String poolName, String name) {
@@ -94,14 +83,4 @@ class MetricsFibersMonitor implements FibersMonitor {
         timedParkLatency.update(ns);
     }
 
-    @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
-        if (fs == null || fs.isEmpty())
-            this.problemFibers = null;
-        else {
-            this.problemFibers = new HashMap<>();
-            for (Fiber f : fs)
-                problemFibers.put(f, f.getStackTrace());
-        }
-    }
 }

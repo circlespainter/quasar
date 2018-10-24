@@ -14,7 +14,6 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import com.google.common.base.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;

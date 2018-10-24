@@ -52,17 +52,17 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
 
     @Override
     public void signal() {
-        final Strand s = waiter;
+        final co.paralleluniverse.strands.Strand s = waiter;
         record("signal", "%s signalling %s", this, s);
         if (s != null)
-            Strand.unpark(s, owner);
+            co.paralleluniverse.strands.Strand.unpark(s);
     }
 
-    public void signalAndWait() throws SuspendExecution {
-        final Strand s = waiter;
+    public void signalAndWait() {
+        final co.paralleluniverse.strands.Strand s = waiter;
         if (s != null) {
             record("signal", "%s signalling %s", this, s);
-            Strand.yieldAndUnpark(s, owner);
+            co.paralleluniverse.strands.Strand.unpark(s);
         }
     }
     private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();

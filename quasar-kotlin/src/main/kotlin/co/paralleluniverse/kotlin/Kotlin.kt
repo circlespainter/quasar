@@ -17,7 +17,6 @@ import co.paralleluniverse.strands.channels.ReceivePort
 import co.paralleluniverse.strands.channels.SelectAction
 import co.paralleluniverse.strands.channels.Selector
 import co.paralleluniverse.strands.channels.SendPort
-import co.paralleluniverse.strands.concurrent.ReentrantLock
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 
