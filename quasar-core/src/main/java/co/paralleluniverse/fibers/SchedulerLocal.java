@@ -14,6 +14,7 @@
 package co.paralleluniverse.fibers;
 
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class SchedulerLocal<T> {
     private final Lock lock = new ReentrantLock();
-    private static final WeakHashMap<SchedulerLocal, ConcurrentMap<SchedulerLocal, Entry<?>>> schedLocals = new WeakHashMap<>();
+    private static final WeakHashMap<Executor, ConcurrentMap<SchedulerLocal, Entry<?>>> schedLocals = new WeakHashMap<>();
 
     /**
      * Computes the initial value for the current {@link Executor}.
@@ -44,7 +45,11 @@ public class SchedulerLocal<T> {
      */
     public final T get() {
         final Executor scheduler = currentScheduler();
-        final ConcurrentMap<SchedulerLocal, Entry<?>> map = schedLocals.get(scheduler);
+        ConcurrentMap<SchedulerLocal, Entry<?>> map = schedLocals.get(scheduler);
+        if (map == null) {
+            map = new ConcurrentHashMap<>();
+            schedLocals.put(scheduler, map);
+        }
         Entry<T> entry = (Entry<T>) map.get(this);
         if (entry == null) {
             lock.lock();

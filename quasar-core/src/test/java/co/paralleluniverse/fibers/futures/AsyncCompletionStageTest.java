@@ -15,8 +15,8 @@ package co.paralleluniverse.fibers.futures;
 
 import co.paralleluniverse.common.util.Exceptions;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
+
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -27,10 +27,10 @@ import org.junit.After;
  * @author pron
  */
 public class AsyncCompletionStageTest {
-    private FiberScheduler scheduler;
+    private ExecutorService scheduler;
 
     public AsyncCompletionStageTest() {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        scheduler = Executors.newWorkStealingPool();
     }
 
     @After
@@ -40,25 +40,21 @@ public class AsyncCompletionStageTest {
 
     @Test
     public void simpleTest1() throws Exception {
-        final CompletableFuture<String> fut = new CompletableFuture<String>();
+        final CompletableFuture<String> fut = new CompletableFuture<>();
 
-        final Fiber<String> fiber = new Fiber<>(scheduler, () -> {
+        final co.paralleluniverse.fibers.Fiber<String> fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, () -> {
             try {
-                return AsyncCompletionStage.get(fut);
+                return fut.get();
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
             }
         }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(200);
-                    fut.complete("hi!");
-                } catch (InterruptedException e) {
-                }
-            }
+        new Thread(() -> {
+            try {
+                Thread.sleep(200);
+                fut.complete("hi!");
+            } catch (InterruptedException ignored) {}
         }).start();
 
         assertThat(fiber.get(), equalTo("hi!"));
@@ -67,11 +63,11 @@ public class AsyncCompletionStageTest {
 
     @Test
     public void testException() throws Exception {
-        final CompletableFuture<String> fut = new CompletableFuture<String>();
+        final CompletableFuture<String> fut = new CompletableFuture<>();
 
-        final Fiber<String> fiber = new Fiber<>(scheduler, () -> {
+        final co.paralleluniverse.fibers.Fiber<String> fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, () -> {
             try {
-                String res = AsyncCompletionStage.get(fut);
+                final String res = fut.get();
                 fail();
                 return res;
             } catch (ExecutionException e) {
@@ -79,15 +75,11 @@ public class AsyncCompletionStageTest {
             }
         }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(200);
-                    fut.completeExceptionally(new RuntimeException("haha!"));
-                } catch (InterruptedException e) {
-                }
-            }
+        new Thread(() -> {
+            try {
+                Thread.sleep(200);
+                fut.completeExceptionally(new RuntimeException("haha!"));
+            } catch (InterruptedException ignored) {}
         }).start();
 
         try {

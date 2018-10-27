@@ -50,51 +50,6 @@ public abstract class Strand {
     }
 
     /**
-     * The minimum priority that a strand can have.
-     */
-    public final static int MIN_PRIORITY = 1;
-
-    /**
-     * The default priority that is assigned to a strand.
-     */
-    public final static int NORM_PRIORITY = 5;
-
-    /**
-     * The maximum priority that a strand can have.
-     */
-    public final static int MAX_PRIORITY = 10;
-
-    /**
-     * A strand's running state
-     */
-    public enum State {
-        /**
-         * Strand created but not started
-         */
-        NEW,
-        /**
-         * Strand started but not yet running.
-         */
-        STARTED,
-        /**
-         * Strand is running.
-         */
-        RUNNING,
-        /**
-         * Strand is blocked.
-         */
-        WAITING,
-        /**
-         * Strand is blocked with a timeout
-         */
-        TIMED_WAITING,
-        /**
-         * Strand has terminated.
-         */
-        TERMINATED
-    };
-
-    /**
      * Tests whether this strand is a fiber.
      *
      * @return {@code true} iff this strand is a fiber.
@@ -121,36 +76,6 @@ public abstract class Strand {
      * @return {@code this}
      */
     public abstract Strand setName(String name);
-
-    /**
-     * Attempts to change the priority of this strand.
-     *
-     * The priority of this thread is set to the smaller of
-     * the specified {@code newPriority} and the maximum permitted
-     * priority of the strand's thread group, if the strand is a thread.
-     * 
-     * The strand priority's semantics - or even if it is ignored completely -
-     * is entirely up to the strand's scheduler, be it the OS kernel in the case of
-     * a thread, or the fiber scheduler, in the case of a fiber.
-     *
-     * @param newPriority priority to set this strand to
-     * 
-     * @exception IllegalArgumentException If the priority is not in the
-     *                                     range {@code MIN_PRIORITY} to {@code MAX_PRIORITY}
-     * @see #getPriority
-     * @see #MAX_PRIORITY
-     * @see #MIN_PRIORITY
-     */
-    public abstract Strand setPriority(int newPriority);
-
-    /**
-     * Returns this strand's priority.
-     *
-     * @return this strand's priority.
-     * @see #setPriority
-     */
-    public abstract int getPriority();
-
     /**
      * Tests whether this strand is alive, namely it has been started but not yet terminated.
      */
@@ -238,11 +163,6 @@ public abstract class Strand {
      * @return the blocker
      */
     public abstract Object getBlocker();
-
-    /**
-     * Returns the strand's current running state.
-     */
-    public abstract State getState();
 
     /**
      * Returns an array of stack trace elements representing the stack dump
@@ -606,28 +526,6 @@ public abstract class Strand {
     }
 
     /**
-     * Makes available the permit for the given strand, if it
-     * was not already available. If the strand was blocked on
-     * {@code park} then it will unblock. Otherwise, its next call
-     * to {@code park} is guaranteed not to block. This operation
-     * is not guaranteed to have any effect at all if the given
-     * strand has not been started.
-     *
-     * @param strand the strand to unpark, or {@code null}, in which case this operation has no effect
-     */
-    public static void unpark(Thread strand) {
-        LockSupport.unpark(strand);
-    }
-
-    /**
-     * Prints a stack trace of the current strand to the standard error stream.
-     * This method is used only for debugging.
-     */
-    public static void dumpStack() {
-        new Exception("Stack trace").printStackTrace();
-    }
-
-    /**
      * Set the handler invoked when this strand abruptly terminates
      * due to an uncaught exception.
      * <p>
@@ -869,17 +767,6 @@ public abstract class Strand {
         }
 
         @Override
-        public Strand setPriority(int newPriority) {
-            thread.setPriority(newPriority);
-            return this;
-        }
-
-        @Override
-        public int getPriority() {
-            return thread.getPriority();
-        }
-
-        @Override
         public long getId() {
             return thread.getId();
         }
@@ -892,26 +779,6 @@ public abstract class Strand {
         @Override
         public boolean isTerminated() {
             return thread.getState() == Thread.State.TERMINATED;
-        }
-
-        @Override
-        public State getState() {
-            final Thread.State state = thread.getState();
-            switch (state) {
-                case NEW:
-                    return State.NEW;
-                case RUNNABLE:
-                    return State.STARTED;
-                case BLOCKED:
-                case WAITING:
-                    return State.WAITING;
-                case TIMED_WAITING:
-                    return State.TIMED_WAITING;
-                case TERMINATED:
-                    return State.TERMINATED;
-                default:
-                    throw new AssertionError("Unknown thread state: " + state);
-            }
         }
 
         @Override
@@ -1003,19 +870,11 @@ public abstract class Strand {
         private static final ConcurrentMap<Integer, Fiber> fiberStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
 
         public static Fiber get(java.lang.Fiber f) {
-            Fiber s = fiberStrands.get(System.identityHashCode(f));
-            if (s == null) {
-                s = new Fiber(f);
-                Fiber p = fiberStrands.putIfAbsent(System.identityHashCode(f), s);
-                if (p != null)
-                    s = p;
-//                else {
-//                    final Runnable target = ThreadAccess.getTarget(t);
-//                    if (target != null && target instanceof Stranded)
-//                        ((Stranded) target).setStrand(s);
-//                }
-            }
-            return s;
+            return fiberStrands.get(System.identityHashCode(f));
+        }
+
+        public static <V> void set(java.lang.Fiber f, Fiber<V> fiber) {
+            fiberStrands.put(System.identityHashCode(f), fiber);
         }
 
         private final Fiber fiber;
@@ -1044,22 +903,6 @@ public abstract class Strand {
             return fiber.setName(name);
         }
 
-        /**
-         * @inheritDoc
-         * 
-         * Note that the default fiber scheduler ignores fiber priority.
-         */
-        @Override
-        public Strand setPriority(int newPriority) {
-            fiber.setPriority(newPriority);
-            return this;
-        }
-
-        @Override
-        public int getPriority() {
-            return fiber.getPriority();
-        }
-
         @Override
         public long getId() {
             return fiber.getId();
@@ -1073,11 +916,6 @@ public abstract class Strand {
         @Override
         public boolean isTerminated() {
             return fiber.isTerminated();
-        }
-
-        @Override
-        public State getState() {
-            return fiber.getState();
         }
 
         @Override

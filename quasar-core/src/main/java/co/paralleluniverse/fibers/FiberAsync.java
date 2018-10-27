@@ -154,7 +154,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
                 fiber.record(1, "FiberAsync", "run", "FibeAsync %s on fiber %s has timed out", this, fiber);
                 throw (TimeoutException) exception;
             }
-            LockSupport.parkNanos(this, deadline - now);
+            Fiber.parkNanos(this, deadline - now);
         }
 
         return getResult();
@@ -263,6 +263,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
             return;
         this.result = result;
         completed = true;
+        Fiber.unpark(fiber);
     }
 
     /**
@@ -277,6 +278,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
             return;
         this.exception = t;
         completed = true;
+        Fiber.unpark(fiber);
     }
 
     /**

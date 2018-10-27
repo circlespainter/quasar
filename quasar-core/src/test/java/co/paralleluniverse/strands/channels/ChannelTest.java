@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -16,12 +16,14 @@ package co.paralleluniverse.strands.channels;
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -53,7 +55,7 @@ public class ChannelTest {
     final OverflowPolicy policy;
     final boolean singleConsumer;
     final boolean singleProducer;
-    final FiberScheduler scheduler;
+    final ExecutorService scheduler;
 
 //    public ChannelTest() {
 //        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
@@ -65,7 +67,7 @@ public class ChannelTest {
 //        //Debug.dumpAfter(20000, "channels.log");
 //    }
     public ChannelTest(int mailboxSize, OverflowPolicy policy, boolean singleConsumer, boolean singleProducer) {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        scheduler = Executors.newWorkStealingPool();
         this.mailboxSize = mailboxSize;
         this.policy = policy;
         this.singleConsumer = singleConsumer;
@@ -103,21 +105,18 @@ public class ChannelTest {
     public void sendMessageFromFiberToFiber() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib1 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            final String m = ch.receive();
 
-                assertThat(m, equalTo("a message"));
-            }
+            assertThat(m, equalTo("a message"));
+
+            return null;
         }).start();
 
-        Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                Fiber.sleep(50);
-                ch.send("a message");
-            }
+        final co.paralleluniverse.fibers.Fiber<Void> fib2 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            co.paralleluniverse.fibers.Fiber.sleep(50);
+            ch.send("a message");
+            return null;
         }).start();
 
         fib1.join();
@@ -128,13 +127,12 @@ public class ChannelTest {
     public void sendMessageFromThreadToFiber() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            final String m = ch.receive();
 
-                assertThat(m, equalTo("a message"));
-            }
+            assertThat(m, equalTo("a message"));
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -147,13 +145,12 @@ public class ChannelTest {
     public void sendMessageFromFiberToThread() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                Fiber.sleep(100);
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            co.paralleluniverse.fibers.Fiber.sleep(100);
 
-                ch.send("a message");
-            }
+            ch.send("a message");
+
+            return null;
         }).start();
 
         String m = ch.receive();
@@ -167,21 +164,18 @@ public class ChannelTest {
     public void sendMessageFromThreadToThread() throws Exception {
         final Channel<String> ch = newChannel();
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(100);
+        final Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(100);
 
-                    ch.send("a message");
-                } catch (InterruptedException | SuspendExecution ex) {
-                    throw new AssertionError(ex);
-                }
+                ch.send("a message");
+            } catch (InterruptedException ex) {
+                throw new AssertionError(ex);
             }
         });
         thread.start();
 
-        String m = ch.receive();
+        final String m = ch.receive();
 
         assertThat(m, equalTo("a message"));
 
@@ -195,17 +189,14 @@ public class ChannelTest {
         assumeTrue(mailboxSize == 1);
         assumeTrue(OverflowPolicy.BLOCK.equals(policy));
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(100);
+        final Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(100);
 
-                    ch.send("message 1");
-                    ch.send("message 2", 100, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException | SuspendExecution ex) {
-                    throw new AssertionError(ex);
-                }
+                ch.send("message 1");
+                ch.send("message 2", 100, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ex) {
+                throw new AssertionError(ex);
             }
         });
         thread.start();
@@ -227,17 +218,14 @@ public class ChannelTest {
         assumeTrue(mailboxSize == 1);
         assumeTrue(OverflowPolicy.BLOCK.equals(policy));
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(100);
+        final Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(100);
 
-                    ch.send("message 1");
-                    ch.send("message 2", 100, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException | SuspendExecution ex) {
-                    throw new AssertionError(ex);
-                }
+                ch.send("message 1");
+                ch.send("message 2", 100, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ex) {
+                throw new AssertionError(ex);
             }
         });
         thread.start();
@@ -258,29 +246,27 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib1 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib1 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            String m = ch.receive();
 
-                assertThat(m, equalTo("a message"));
-            }
+            assertThat(m, equalTo("a message"));
+
+            return null;
         }).start();
 
-        Fiber fib2 = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                Fiber.sleep(50);
-                ch.send("a message");
+        final co.paralleluniverse.fibers.Fiber<Void> fib2 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            co.paralleluniverse.fibers.Fiber.sleep(50);
+            ch.send("a message");
 
-                boolean thrown = false;
-                try {
-                    ch.receive();
-                } catch (Throwable e) {
-                    thrown = true;
-                }
-                assertTrue(thrown);
+            boolean thrown = false;
+            try {
+                ch.receive();
+            } catch (Throwable e) {
+                thrown = true;
             }
+            assertTrue(thrown);
+
+            return null;
         }).start();
 
         fib1.join();
@@ -293,13 +279,12 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            String m = ch.receive();
 
-                assertThat(m, equalTo("a message"));
-            }
+            assertThat(m, equalTo("a message"));
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -322,21 +307,20 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                Fiber.sleep(100);
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            co.paralleluniverse.fibers.Fiber.sleep(100);
 
-                ch.send("a message");
+            ch.send("a message");
 
-                boolean thrown = false;
-                try {
-                    ch.receive();
-                } catch (Throwable e) {
-                    thrown = true;
-                }
-                assertTrue(thrown);
+            boolean thrown = false;
+            try {
+                ch.receive();
+            } catch (Throwable e) {
+                thrown = true;
             }
+            assertTrue(thrown);
+
+            return null;
         }).start();
 
         String m = ch.receive();
@@ -352,16 +336,11 @@ public class ChannelTest {
         assumeTrue(Debug.isAssertionsEnabled());
         final Channel<String> ch = newChannel();
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ch.receive();
-                } catch (InterruptedException ex) {
-                    throw new AssertionError(ex);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
-                }
+        Thread thread = new Thread(() -> {
+            try {
+                ch.receive();
+            } catch (InterruptedException ex) {
+                throw new AssertionError(ex);
             }
         });
         thread.start();
@@ -413,26 +392,20 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> receiver = new Fiber<>(scheduler, new SuspendableCallable<Integer>() {
-            @Override
-            public Integer run() throws SuspendExecution, InterruptedException {
-                int i = 0;
-                while (ch.receive() != null) {
-                    i++;
-                    Fiber.sleep(50);
-                }
-                return i;
-
+        final co.paralleluniverse.fibers.Fiber<Integer> receiver = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Integer>) () -> {
+            int i = 0;
+            while (ch.receive() != null) {
+                i++;
+                co.paralleluniverse.fibers.Fiber.sleep(50);
             }
+            return i;
         }).start();
 
-        Fiber<Void> sender = new Fiber<Void>(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 0; i < 10; i++)
-                    ch.send(i);
-                ch.close();
-            }
+        final co.paralleluniverse.fibers.Fiber<Void> sender = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            for (int i = 0; i < 10; i++)
+                ch.send(i);
+            ch.close();
+            return null;
         }).start();
 
         try {
@@ -449,17 +422,13 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        Fiber<Integer> fib = new Fiber<>(scheduler, new SuspendableCallable<Integer>() {
-            @Override
-            public Integer run() throws SuspendExecution, InterruptedException {
-                int i = 0;
-                while (ch.receive() != null) {
-                    i++;
-                    Fiber.sleep(50);
-                }
-                return i;
-
+        final co.paralleluniverse.fibers.Fiber<Integer> fib = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Integer>) () -> {
+            int i = 0;
+            while (ch.receive() != null) {
+                i++;
+                co.paralleluniverse.fibers.Fiber.sleep(50);
             }
+            return i;
         }).start();
 
         for (int i = 0; i < 10; i++)
@@ -473,20 +442,19 @@ public class ChannelTest {
     public void testChannelClose() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 5; i++) {
-                    Integer m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Integer> fib = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Integer>) () -> {
+            for (int i = 1; i <= 5; i++) {
+                final Integer m = ch.receive();
 
-                    assertThat(m, equalTo(i));
-                }
-
-                Integer m = ch.receive();
-
-                assertThat(m, nullValue());
-                assertTrue(ch.isClosed());
+                assertThat(m, equalTo(i));
             }
+
+            Integer m = ch.receive();
+
+            assertThat(m, nullValue());
+            assertTrue(ch.isClosed());
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -508,23 +476,22 @@ public class ChannelTest {
     public void testChannelCloseException() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 5; i++) {
-                    Integer m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            for (int i = 1; i <= 5; i++) {
+                Integer m = ch.receive();
 
-                    assertThat(m, equalTo(i));
-                }
-
-                try {
-                    ch.receive();
-                    fail();
-                } catch (ProducerException e) {
-                    assertThat(e.getCause().getMessage(), equalTo("foo"));
-                }
-                assertTrue(ch.isClosed());
+                assertThat(m, equalTo(i));
             }
+
+            try {
+                ch.receive();
+                fail();
+            } catch (ProducerException e) {
+                assertThat(e.getCause().getMessage(), equalTo("foo"));
+            }
+            assertTrue(ch.isClosed());
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -546,20 +513,19 @@ public class ChannelTest {
     public void testChannelCloseWithSleep() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 5; i++) {
-                    Integer m = ch.receive();
-
-                    assertThat(m, equalTo(i));
-                }
-
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            for (int i = 1; i <= 5; i++) {
                 Integer m = ch.receive();
 
-                assertThat(m, nullValue());
-                assertTrue(ch.isClosed());
+                assertThat(m, equalTo(i));
             }
+
+            Integer m = ch.receive();
+
+            assertThat(m, nullValue());
+            assertTrue(ch.isClosed());
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -582,23 +548,22 @@ public class ChannelTest {
     public void testChannelCloseExceptionWithSleep() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 5; i++) {
-                    Integer m = ch.receive();
+        final co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            for (int i = 1; i <= 5; i++) {
+                Integer m = ch.receive();
 
-                    assertThat(m, equalTo(i));
-                }
-
-                try {
-                    Integer m = ch.receive();
-                    fail("m = " + m);
-                } catch (ProducerException e) {
-                    assertThat(e.getCause().getMessage(), equalTo("foo"));
-                }
-                assertTrue(ch.isClosed());
+                assertThat(m, equalTo(i));
             }
+
+            try {
+                Integer m = ch.receive();
+                fail("m = " + m);
+            } catch (ProducerException e) {
+                assertThat(e.getCause().getMessage(), equalTo("foo"));
+            }
+            assertTrue(ch.isClosed());
+
+            return  null;
         }).start();
 
         Thread.sleep(50);
@@ -622,16 +587,15 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        final SuspendableRunnable r = new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 100; i++) {
-                    ch.send(i);
-                }
+        final Callable<Void> r = () -> {
+            for (int i = 1; i <= 100; i++) {
+                ch.send(i);
             }
+
+            return null;
         };
-        Fiber fib1 = new Fiber("fiber", scheduler, r).start();
-        Fiber fib2 = new Fiber("fiber", scheduler, r).start();
+        co.paralleluniverse.fibers.Fiber<Void> fib1 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, r).start();
+        co.paralleluniverse.fibers.Fiber<Void> fib2 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, r).start();
 
         Thread.sleep(500);
 
@@ -645,16 +609,14 @@ public class ChannelTest {
         assumeThat(policy, is(OverflowPolicy.BLOCK));
         final Channel<Integer> ch = newChannel();
 
-        final SuspendableRunnable r = new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (int i = 1; i <= 100; i++) {
-                    ch.send(i);
-                }
+        final Callable<Void> r = () -> {
+            for (int i = 1; i <= 100; i++) {
+                ch.send(i);
             }
+            return null;
         };
-        Fiber fib1 = new Fiber("fiber", scheduler, r).start();
-        Fiber fib2 = new Fiber("fiber", scheduler, r).start();
+        co.paralleluniverse.fibers.Fiber<Void> fib1 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, r).start();
+        co.paralleluniverse.fibers.Fiber<Void> fib2 = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, r).start();
 
         Thread.sleep(500);
 
@@ -669,9 +631,7 @@ public class ChannelTest {
 
         final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
+        co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
                 try {
                     for (int i = 1; i <= 5; i++) {
                         int m = ch.receiveInt();
@@ -685,11 +645,12 @@ public class ChannelTest {
                 try {
                     int m = ch.receiveInt();
                     fail("m = " + m);
-                } catch (QueueChannel.EOFException e) {
+                } catch (QueueChannel.EOFException ignored) {
                 }
 
                 assertTrue(ch.isClosed());
-            }
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -713,30 +674,29 @@ public class ChannelTest {
 
         final IntChannel ch = Channels.newIntChannel(mailboxSize, policy);
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    for (int i = 1; i <= 5; i++) {
-                        int m = ch.receiveInt();
-
-                        assertThat(m, is(i));
-                    }
-                } catch (QueueChannel.EOFException e) {
-                    fail();
-                }
-
-                try {
+        co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            try {
+                for (int i = 1; i <= 5; i++) {
                     int m = ch.receiveInt();
-                    fail("m = " + m);
-                } catch (ProducerException e) {
-                    assertThat(e.getCause().getMessage(), equalTo("foo"));
-                } catch (ReceivePort.EOFException e) {
-                    fail();
-                }
 
-                assertTrue(ch.isClosed());
+                    assertThat(m, is(i));
+                }
+            } catch (QueueChannel.EOFException e) {
+                fail();
             }
+
+            try {
+                int m = ch.receiveInt();
+                fail("m = " + m);
+            } catch (ProducerException e) {
+                assertThat(e.getCause().getMessage(), equalTo("foo"));
+            } catch (ReceivePort.EOFException e) {
+                fail();
+            }
+
+            assertTrue(ch.isClosed());
+
+            return null;
         }).start();
 
         Thread.sleep(50);
@@ -766,28 +726,22 @@ public class ChannelTest {
         topic.subscribe(channel2);
         topic.subscribe(channel3);
 
-        Fiber f1 = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                assertThat(channel1.receive(), equalTo("hello"));
-                assertThat(channel1.receive(), equalTo("world!"));
-            }
+        co.paralleluniverse.fibers.Fiber<Void> f1 = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            assertThat(channel1.receive(), equalTo("hello"));
+            assertThat(channel1.receive(), equalTo("world!"));
+            return null;
         }).start();
 
-        Fiber f2 = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                assertThat(channel2.receive(), equalTo("hello"));
-                assertThat(channel2.receive(), equalTo("world!"));
-            }
+        co.paralleluniverse.fibers.Fiber<Void> f2 = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            assertThat(channel2.receive(), equalTo("hello"));
+            assertThat(channel2.receive(), equalTo("world!"));
+            return null;
         }).start();
 
-        Fiber f3 = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                assertThat(channel3.receive(), equalTo("hello"));
-                assertThat(channel3.receive(), equalTo("world!"));
-            }
+        co.paralleluniverse.fibers.Fiber<Void> f3 = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<Void>) () -> {
+            assertThat(channel3.receive(), equalTo("hello"));
+            assertThat(channel3.receive(), equalTo("world!"));
+            return null;
         }).start();
 
         Thread.sleep(100);
@@ -808,15 +762,13 @@ public class ChannelTest {
 
         final ReceivePortGroup<String> group = new ReceivePortGroup<>(channel1, channel2, channel3);
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m1 = group.receive();
-                String m2 = channel2.receive();
+        co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            final String m1 = group.receive();
+            final String m2 = channel2.receive();
 
-                assertThat(m1, equalTo("hello"));
-                assertThat(m2, equalTo("world!"));
-            }
+            assertThat(m1, equalTo("hello"));
+            assertThat(m2, equalTo("world!"));
+            return null;
         }).start();
 
         Thread.sleep(100);
@@ -838,19 +790,18 @@ public class ChannelTest {
 
         final ReceivePortGroup<String> group = new ReceivePortGroup<>(channel1, channel2, channel3);
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String m1 = group.receive();
-                String m2 = channel2.receive();
-                String m3 = group.receive(10, TimeUnit.MILLISECONDS);
-                String m4 = group.receive(200, TimeUnit.MILLISECONDS);
+        co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            final String m1 = group.receive();
+            final String m2 = channel2.receive();
+            final String m3 = group.receive(10, TimeUnit.MILLISECONDS);
+            final String m4 = group.receive(200, TimeUnit.MILLISECONDS);
 
-                assertThat(m1, equalTo("hello"));
-                assertThat(m2, equalTo("world!"));
-                assertThat(m3, nullValue());
-                assertThat(m4, equalTo("foo"));
-            }
+            assertThat(m1, equalTo("hello"));
+            assertThat(m2, equalTo("world!"));
+            assertThat(m3, nullValue());
+            assertThat(m4, equalTo("foo"));
+
+            return null;
         }).start();
 
         Thread.sleep(100);
@@ -874,61 +825,60 @@ public class ChannelTest {
         final ReceivePortGroup<String> group = new ReceivePortGroup<>();
         group.add(channel3);
 
-        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                final String m1 = group.receive();
-                final String m2 = channel2.receive();
+        co.paralleluniverse.fibers.Fiber<Void> fib = new co.paralleluniverse.fibers.Fiber<>("fiber", scheduler, (Callable<Void>) () -> {
+            final String m1 = group.receive();
+            final String m2 = channel2.receive();
 
-                sync.receive(); // 1
-                sync.receive(); // 2
-                final String m3 = group.receive(10, TimeUnit.MILLISECONDS);
-                final String m4 = group.receive(200, TimeUnit.MILLISECONDS);
+            sync.receive(); // 1
+            sync.receive(); // 2
+            final String m3 = group.receive(10, TimeUnit.MILLISECONDS);
+            final String m4 = group.receive(200, TimeUnit.MILLISECONDS);
 
-                sync.receive(); // 3
-                sync.receive(); // 4
-                final String m5 = group.receive(10, TimeUnit.MILLISECONDS);
-                final String m6 = group.receive(200, TimeUnit.MILLISECONDS);
+            sync.receive(); // 3
+            sync.receive(); // 4
+            final String m5 = group.receive(10, TimeUnit.MILLISECONDS);
+            final String m6 = group.receive(200, TimeUnit.MILLISECONDS);
 
-                assertThat(m1, equalTo("hello"));
-                assertThat(m2, equalTo("world!"));
-                assertThat(m3, nullValue());
-                assertThat(m4, equalTo("foo"));
-                assertThat(m5, nullValue());
-                assertThat(m6, equalTo("bar"));
+            assertThat(m1, equalTo("hello"));
+            assertThat(m2, equalTo("world!"));
+            assertThat(m3, nullValue());
+            assertThat(m4, equalTo("foo"));
+            assertThat(m5, nullValue());
+            assertThat(m6, equalTo("bar"));
 
-                sync.receive(); // 5
-                sync.receive(); // 6
-                final String m7 = group.receive();
-                assertThat(m7, equalTo("2-solo-sings"));
+            sync.receive(); // 5
+            sync.receive(); // 6
+            final String m7 = group.receive();
+            assertThat(m7, equalTo("2-solo-sings"));
 
-                sync.receive(); // 7
-                sync.receive(); // 8
-                String m8 = group.receive();
-                while (m8 != null && m8.contains("leaks"))
-                    m8 = group.receive();
-                String m9 = group.receive();
-                while (m9 != null && m9.contains("leaks"))
-                    m9 = group.receive();
-                String m10 = group.receive();
-                while (m10 != null && m10.contains("leaks"))
-                    m10 = group.receive();
-                assertThat(ImmutableSet.of(m8, m9, m10), equalTo(ImmutableSet.of("1-paused-by-2-solo-waits", "3-paused-by-2-solo-waits", "1-normal")));
+            sync.receive(); // 7
+            sync.receive(); // 8
+            String m8 = group.receive();
+            while (m8 != null && m8.contains("leaks"))
+                m8 = group.receive();
+            String m9 = group.receive();
+            while (m9 != null && m9.contains("leaks"))
+                m9 = group.receive();
+            String m10 = group.receive();
+            while (m10 != null && m10.contains("leaks"))
+                m10 = group.receive();
+            assertThat(ImmutableSet.of(m8, m9, m10), equalTo(ImmutableSet.of("1-paused-by-2-solo-waits", "3-paused-by-2-solo-waits", "1-normal")));
 
-                sync.receive(); // 9
-                sync.receive(); // 10
-                String m11 = group.receive();
-                while (m11 != null && m11.contains("leaks"))
-                    m11 = group.receive();
-                assertThat(m11, equalTo("2-solo-sings-again"));
+            sync.receive(); // 9
+            sync.receive(); // 10
+            String m11 = group.receive();
+            while (m11 != null && m11.contains("leaks"))
+                m11 = group.receive();
+            assertThat(m11, equalTo("2-solo-sings-again"));
 
-                sync.receive(); // 11
-                sync.receive(); // 12
-                String m12 = group.receive();
-                while (m12 != null && m12.contains("leaks"))
-                    m12 = group.receive();
-                assertThat(m12, nullValue());
-            }
+            sync.receive(); // 11
+            sync.receive(); // 12
+            String m12 = group.receive();
+            while (m12 != null && m12.contains("leaks"))
+                m12 = group.receive();
+            assertThat(m12, nullValue());
+
+            return null;
         }).start();
 
         final Object ping = new Object();

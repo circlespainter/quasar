@@ -16,11 +16,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.CheckedCallable;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.Test;
@@ -41,10 +37,10 @@ public class FiberAsyncTest {
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
 
-    private FiberScheduler scheduler;
+    private ExecutorService scheduler;
 
     public FiberAsyncTest() {
-        scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        scheduler = Executors.newWorkStealingPool();
     }
 
     @After
@@ -61,72 +57,36 @@ public class FiberAsyncTest {
     interface Service {
         void registerCallback(MyCallback callback);
     }
-    final Service syncService = new Service() {
-        @Override
-        public void registerCallback(MyCallback callback) {
-            callback.call("sync result!");
-        }
-    };
-    final Service badSyncService = new Service() {
-        @Override
-        public void registerCallback(MyCallback callback) {
-            callback.fail(new RuntimeException("sync exception!"));
-        }
-    };
-    final ExecutorService executor = Executors.newFixedThreadPool(1);
-    final Service asyncService = new Service() {
-        @Override
-        public void registerCallback(final MyCallback callback) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(20);
-                        callback.call("async result!");
-                    } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            });
 
+    private final Service syncService = callback -> callback.call("sync result!");
+    private final Service badSyncService = callback -> callback.fail(new RuntimeException("sync exception!"));
+    private final ExecutorService executor = Executors.newFixedThreadPool(1);
+    private final Service asyncService = callback -> executor.submit(() -> {
+        try {
+            Thread.sleep(20);
+            callback.call("async result!");
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
         }
-    };
-    final Service longAsyncService = new Service() {
-        @Override
-        public void registerCallback(final MyCallback callback) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(2000);
-                        callback.call("async result!");
-                    } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            });
-
+    });
+    private final Service longAsyncService = callback -> executor.submit(() -> {
+        try {
+            Thread.sleep(2000);
+            callback.call("async result!");
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
         }
-    };
-    final Service badAsyncService = new Service() {
-        @Override
-        public void registerCallback(final MyCallback callback) {
-            executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(20);
-                        callback.fail(new RuntimeException("async exception!"));
-                    } catch (InterruptedException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            });
-
+    });
+    private final Service badAsyncService = callback -> executor.submit(() -> {
+        try {
+            Thread.sleep(20);
+            callback.fail(new RuntimeException("async exception!"));
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
         }
-    };
+    });
 
-    static String callService(final Service service) throws SuspendExecution, InterruptedException {
+    private static String callService(final Service service) throws InterruptedException {
         return new MyFiberAsync() {
             @Override
             protected void requestAsync() {
@@ -135,22 +95,16 @@ public class FiberAsyncTest {
         }.run();
     }
 
-    static String callService(final Service service, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException, TimeoutException {
+    private static String callService(final Service service, long timeout) throws InterruptedException, TimeoutException {
         return new MyFiberAsync() {
             @Override
             protected void requestAsync() {
                 service.registerCallback(this);
             }
-        }.run(timeout, unit);
+        }.run(timeout, TimeUnit.MILLISECONDS);
     }
 
     static abstract class MyFiberAsync extends FiberAsync<String, RuntimeException> implements MyCallback {
-        private final Fiber fiber;
-
-        public MyFiberAsync() {
-            this.fiber = Fiber.currentFiber();
-        }
-
         @Override
         public void call(String str) {
             super.asyncCompleted(str);
@@ -164,12 +118,10 @@ public class FiberAsyncTest {
 
     @Test
     public void testSyncCallback() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String res = callService(syncService);
-                assertThat(res, equalTo("sync result!"));
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            final String res = callService(syncService);
+            assertThat(res, equalTo("sync result!"));
+            return null;
         }).start();
 
         fiber.join();
@@ -177,16 +129,14 @@ public class FiberAsyncTest {
 
     @Test
     public void testSyncCallbackException() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    String res = callService(badSyncService);
-                    fail();
-                } catch (Exception e) {
-                    assertThat(e.getMessage(), equalTo("sync exception!"));
-                }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                callService(badSyncService);
+                fail();
+            } catch (Exception e) {
+                assertThat(e.getMessage(), equalTo("sync exception!"));
             }
+            return null;
         }).start();
 
         fiber.join();
@@ -194,12 +144,10 @@ public class FiberAsyncTest {
 
     @Test
     public void testAsyncCallback() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String res = callService(asyncService);
-                assertThat(res, equalTo("async result!"));
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            final String res = callService(asyncService);
+            assertThat(res, equalTo("async result!"));
+            return null;
         }).start();
 
         fiber.join();
@@ -207,16 +155,14 @@ public class FiberAsyncTest {
 
     @Test
     public void testAsyncCallbackException() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    String res = callService(badAsyncService);
-                    fail();
-                } catch (Exception e) {
-                    assertThat(e.getMessage(), equalTo("async exception!"));
-                }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                callService(badAsyncService);
+                fail();
+            } catch (Exception e) {
+                assertThat(e.getMessage(), equalTo("async exception!"));
             }
+            return null;
         }).start();
 
         fiber.join();
@@ -224,23 +170,19 @@ public class FiberAsyncTest {
 
     @Test
     public void testAsyncCallbackExceptionInRequestAsync() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    new FiberAsync<String, RuntimeException>() {
-
-                        @Override
-                        protected void requestAsync() {
-                            throw new RuntimeException("requestAsync exception!");
-                        }
-
-                    }.run();
-                    fail();
-                } catch (Exception e) {
-                    assertThat(e.getMessage(), equalTo("requestAsync exception!"));
-                }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                new FiberAsync<String, RuntimeException>() {
+                    @Override
+                    protected void requestAsync() {
+                        throw new RuntimeException("requestAsync exception!");
+                    }
+                }.run();
+                fail();
+            } catch (Exception e) {
+                assertThat(e.getMessage(), equalTo("requestAsync exception!"));
             }
+            return null;
         }).start();
 
         fiber.join();
@@ -248,16 +190,10 @@ public class FiberAsyncTest {
 
     @Test
     public void testTimedAsyncCallbackNoTimeout() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    String res = callService(asyncService, 50, TimeUnit.MILLISECONDS);
-                    assertThat(res, equalTo("async result!"));
-                } catch (TimeoutException e) {
-                    throw new RuntimeException();
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            final String res = callService(asyncService, 50);
+            assertThat(res, equalTo("async result!"));
+            return null;
         }).start();
 
         fiber.join();
@@ -265,15 +201,12 @@ public class FiberAsyncTest {
 
     @Test
     public void testTimedAsyncCallbackWithTimeout() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    String res = callService(asyncService, 10, TimeUnit.MILLISECONDS);
-                    fail();
-                } catch (TimeoutException e) {
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                callService(asyncService, 10);
+                fail();
+            } catch (TimeoutException ignored) {}
+            return null;
         }).start();
 
         fiber.join();
@@ -281,15 +214,12 @@ public class FiberAsyncTest {
 
     @Test
     public void testInterrupt1() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    callService(longAsyncService);
-                    fail();
-                } catch (InterruptedException e) {
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                callService(longAsyncService);
+                fail();
+            } catch (InterruptedException ignored) {}
+            return null;
         }).start();
 
         fiber.interrupt();
@@ -298,15 +228,12 @@ public class FiberAsyncTest {
 
     @Test
     public void testInterrupt2() throws Exception {
-        final Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution {
-                try {
-                    callService(longAsyncService);
-                    fail();
-                } catch (InterruptedException e) {
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                callService(longAsyncService);
+                fail();
+            } catch (InterruptedException ignored) {}
+            return null;
         }).start();
 
         Thread.sleep(100);
@@ -319,23 +246,18 @@ public class FiberAsyncTest {
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean interrupted = new AtomicBoolean();
 
-        Fiber fiber = new Fiber(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                FiberAsync.runBlocking(Executors.newSingleThreadExecutor(),
-                        new CheckedCallable<Void, RuntimeException>() {
-                            @Override
-                            public Void call() throws RuntimeException {
-                                started.set(true);
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    interrupted.set(true);
-                                }
-                                return null;
-                            }
-                        });
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            FiberAsync.runBlocking(Executors.newSingleThreadExecutor(),
+            (CheckedCallable<Void, RuntimeException>) () -> {
+                started.set(true);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    interrupted.set(true);
+                }
+                return null;
+            });
+            return null;
         });
 
         fiber.start();
@@ -355,17 +277,13 @@ public class FiberAsyncTest {
     
     @Test
     public void testRunBlocking() throws Exception {
-        final Fiber fiber = new Fiber(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), new CheckedCallable<String, InterruptedException>() {
-                    public String call() throws InterruptedException {
-                        Thread.sleep(300);
-                        return "ok";
-                    }
-                });
-                assertThat(res, equalTo("ok"));
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            final String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), () -> {
+                Thread.sleep(300);
+                return "ok";
+            });
+            assertThat(res, equalTo("ok"));
+            return null;
         }).start();
 
         fiber.join();
@@ -373,21 +291,13 @@ public class FiberAsyncTest {
 
     @Test
     public void testRunBlockingWithTimeout1() throws Exception {
-        final Fiber fiber = new Fiber(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, new CheckedCallable<String, InterruptedException>() {
-                        public String call() throws InterruptedException {
-                            Thread.sleep(300);
-                            return "ok";
-                        }
-                    });
-                    assertThat(res, equalTo("ok"));
-                } catch (TimeoutException e) {
-                    fail();
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            final String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, () -> {
+                Thread.sleep(300);
+                return "ok";
+            });
+            assertThat(res, equalTo("ok"));
+            return null;
         }).start();
 
         fiber.join();
@@ -395,20 +305,15 @@ public class FiberAsyncTest {
 
     @Test
     public void testRunBlockingWithTimeout2() throws Exception {
-        final Fiber fiber = new Fiber(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                try {
-                    String res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, new CheckedCallable<String, InterruptedException>() {
-                        public String call() throws InterruptedException {
-                            Thread.sleep(300);
-                            return "ok";
-                        }
-                    });
-                    fail();
-                } catch (TimeoutException e) {
-                }
-            }
+        final Fiber fiber = new Fiber<>(scheduler, () -> {
+            try {
+                FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, () -> {
+                    Thread.sleep(300);
+                    return "ok";
+                });
+                fail();
+            } catch (TimeoutException ignored) {}
+            return null;
         }).start();
 
         fiber.join();

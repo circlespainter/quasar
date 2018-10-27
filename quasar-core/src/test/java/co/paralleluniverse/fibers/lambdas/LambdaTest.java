@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers.lambdas;
 
 import org.junit.Test;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -27,22 +28,17 @@ public class LambdaTest {
     }
 
     private void run(I i) throws ExecutionException, InterruptedException {
-        new Fiber() {
-            @Override
-            protected Object run() throws SuspendExecution, InterruptedException {
-                i.doIt();
-                return null;
-            }
-        }.start().join();
+        new co.paralleluniverse.fibers.Fiber<Void>(() -> {
+            i.doIt();
+            return null;
+        }).start().join();
     }
 
     @Test
     public void suspLambda() throws Exception {
         run(() -> {
             try {
-                Strand.sleep(10);
-            } catch (final SuspendExecution e) {
-                throw new AssertionError(e);
+                co.paralleluniverse.strands.Strand.sleep(10);
             } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }

@@ -16,7 +16,6 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.strands.RunnableCallableUtils;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
@@ -44,8 +43,7 @@ import java.util.concurrent.locks.LockSupport;
  *
  * @author pron
  */
-public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
-    private static final Object RESET = new Object();
+final public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     private static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     static {
@@ -56,24 +54,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
-    private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = new UncaughtExceptionHandler() {
-        @Override
-        public void uncaughtException(Strand s, Throwable e) {
-            System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
-            System.err.println(e);
-            Strand.printStackTrace(e.getStackTrace(), System.err);
-        }
+    private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = (s, e) -> {
+        System.err.print("Exception in Fiber \"" + s.getName() + "\" ");
+        System.err.println(e);
+        Strand.printStackTrace(e.getStackTrace(), System.err);
     };
     private static final AtomicLong idGen = new AtomicLong(10000000L);
-
     private static long nextFiberId() {
         return idGen.incrementAndGet();
     }
 
+
+    private volatile boolean interrupted;
+
     private String name;
     private /*final*/ transient long fid;
-    private volatile State state;
-    private byte priority;
     private Callable<V> target;
     private Executor scheduler;
     private java.lang.Fiber fiber;
@@ -90,12 +85,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      */
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, Executor scheduler, Callable<V> target) {
-        this.scheduler = scheduler;
-        this.state = State.NEW;
+        this.scheduler = scheduler != null ? scheduler : DefaultFiberScheduler.getInstance();
         this.fid = nextFiberId();
         setName(name);
         Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
-        this.priority = (byte)NORM_PRIORITY;
         this.target = target;
         this.result = new Val<>();
 
@@ -140,43 +133,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final Fiber<V> setName(String name) {
-        if (state != State.NEW)
-            throw new IllegalStateException("Fiber name cannot be changed once it has started");
         this.name = name;
         return this;
-    }
-
-    /**
-     * Sets the priority of this fiber.
-     *
-     *
-     * The fiber priority's semantics - or even if it is ignored completely -
-     * is entirely up to the fiber's scheduler.
-     * The default fiber scheduler completely ignores fiber priority.
-     *
-     * @param newPriority priority to set this fiber to
-     *
-     * @exception IllegalArgumentException If the priority is not in the
-     *                                     range {@code MIN_PRIORITY} to {@code MAX_PRIORITY}
-     * @see #getPriority
-     * @see #MAX_PRIORITY
-     * @see #MIN_PRIORITY
-     */
-    @Override
-    public Fiber setPriority(int newPriority) {
-        if (newPriority > MAX_PRIORITY || newPriority < MIN_PRIORITY)
-            throw new IllegalArgumentException();
-        this.priority = (byte) newPriority;
-        return this;
-    }
-
-    /**
-     * Returns this fiber's priority.
-     * @see #setPriority
-     */
-    @Override
-    public int getPriority() {
-        return priority;
     }
 
     @Override
@@ -331,16 +289,19 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     void setResult(V res) {
-        if (result == RESET) // only in overhead benchmark
-            return;
         this.result.set(res);
     }
 
-    private static Fiber getCurrentFiber() {
-        if (java.lang.Strand.currentStrand() instanceof java.lang.Fiber)
-            return Fiber.currentFiber();
+    void setException(Exception e) {
+        this.result.setException(e);
+    }
 
-        return FiberStrand.get((java.lang.Fiber) java.lang.Strand.currentStrand());
+    private static Fiber getCurrentFiber() {
+        final java.lang.Strand currentStrand = java.lang.Strand.currentStrand();
+        if (!(currentStrand instanceof java.lang.Fiber))
+            return null;
+
+        return FiberStrand.get((java.lang.Fiber) currentStrand);
     }
 
     /**
@@ -352,40 +313,46 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (fiber != null)
             throw new IllegalThreadStateException("Fiber has already been started or has died");
 
-        if (!casState(State.NEW, State.STARTED)) {
-            if (state == State.TERMINATED && future().isCancelled())
-                return this;
-            throw new IllegalThreadStateException("Fiber has already been started or has died");
-        }
-
         if (target == null)
             throw new IllegalThreadStateException("No target Callable has been provided");
 
         final Runnable task = () -> {
             try {
                 fiberThread = Thread.currentThread();
+                if (interrupted) {
+                    interrupted = false;
+                    fiberThread.interrupt();
+                }
                 setResult(target.call());
-            } catch (Exception e) {
+            } catch (final Exception e) {
+                setException(e);
+                if (e instanceof RuntimeException)
+                    throw (RuntimeException) e;
                 throw new RuntimeException(e);
             }
         };
 
-        if (scheduler != null)
-            fiber = new java.lang.Fiber(scheduler, task);
-        else
-            fiber = new java.lang.Fiber(task);
+        fiber = new java.lang.Fiber(scheduler, task);
+        FiberStrand.set(fiber, this);
+        fiber = fiber.schedule();
 
         return this;
     }
 
     @Override
     public final void interrupt() {
-        fiberThread.interrupt();
+        if (fiberThread != null)
+            fiberThread.interrupt();
+        else
+            interrupted = true;
     }
 
     @Override
     public final boolean isInterrupted() {
-        return fiberThread.isInterrupted();
+        if (fiberThread != null)
+            return fiberThread.isInterrupted();
+        else
+            return interrupted;
     }
 
     @Override
@@ -400,17 +367,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean isAlive() {
-        return state != State.NEW && !future().isDone();
-    }
-
-    @Override
-    public final State getState() {
-        return state;
+        return fiber != null && fiber.isAlive();
     }
 
     @Override
     public final boolean isTerminated() {
-        return state == State.TERMINATED;
+        return fiber != null && !fiber.isAlive();
     }
 
     @Override
@@ -448,11 +410,12 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        if (casState(State.NEW, State.TERMINATED))
-            future().cancel(mayInterruptIfRunning);
-        else
-            interrupt();
-        return !isDone();
+        if (fiber == null)
+            return false;
+
+        fiber.cancel();
+        interrupted = fiber.isCancelled();
+        return interrupted;
     }
 
     @Override
@@ -518,21 +481,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     public Executor getScheduler() {
         return scheduler;
-    }
-
-    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
-    static {
-        try {
-            stateOffset = UNSAFE.objectFieldOffset(Fiber.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-    private boolean casState(State expected, State update) {
-        return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
@@ -641,12 +589,4 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         //return ((FlightRecorderMessageFactory) recorder.getAux()).makeFlightRecorderMessage(clazz, method, format, args);
     }
     //</editor-fold>
-
-    private static StackTraceElement[] skipStackTraceElements(StackTraceElement[] st, int skip) {
-        if (skip >= st.length)
-            return st; // something is wrong, but all the more reason not to lose the stacktrace
-        final StackTraceElement[] st1 = new StackTraceElement[st.length - skip];
-        System.arraycopy(st, skip, st1, 0, st1.length);
-        return st1;
-    }
 }

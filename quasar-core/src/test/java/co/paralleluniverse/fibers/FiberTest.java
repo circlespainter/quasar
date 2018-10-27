@@ -1,16 +1,17 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
- */
+
+
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.test.TestUtil;
@@ -48,10 +49,11 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-/**
+*
  *
  * @author pron
- */
+
+
 @RunWith(Parameterized.class)
 public class FiberTest implements Serializable {
     @Rule
@@ -62,7 +64,7 @@ public class FiberTest implements Serializable {
     private transient FiberScheduler scheduler;
 
 //    public FiberTest() {
-////        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1)); 
+////        this.scheduler = new FiberExecutorScheduler("test", Executors.newFixedThreadPool(1));
 //        this.scheduler = new FiberForkJoinScheduler("test", 4, null, false);
 //    }
     public FiberTest(FiberScheduler scheduler) {
@@ -113,15 +115,15 @@ public class FiberTest implements Serializable {
         Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
-                
+
             }
         });
 
         assertThat(fiber.getPriority(), is(Strand.NORM_PRIORITY));
-        
+
         fiber.setPriority(3);
         assertThat(fiber.getPriority(), is(3));
-        
+
         try {
             fiber.setPriority(Strand.MAX_PRIORITY + 1);
             fail();
@@ -284,7 +286,7 @@ public class FiberTest implements Serializable {
         assertThat(tl1.get(), is("foo"));
         assertThat(tl2.get(), is("bar"));
     }
-    
+
     @Test
     public void testNoLocals() throws Exception { // shitty test
         final ThreadLocal<String> tl1 = new ThreadLocal<>();
@@ -340,8 +342,8 @@ public class FiberTest implements Serializable {
 
         assertThat(tl1.get(), is("foo"));
     }
-    
-    
+
+
 
     @Test
     public void testThreadLocalsParallel() throws Exception {
@@ -934,3 +936,4 @@ public class FiberTest implements Serializable {
 //        }
     }
 }
+*/

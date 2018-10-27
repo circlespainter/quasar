@@ -17,10 +17,13 @@ import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.ProducerException;
 import co.paralleluniverse.strands.channels.ReceivePort;
+
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Set;
@@ -35,25 +38,16 @@ import java.util.concurrent.Executor;
  * @author pron
  */
 public class Var<T> {
-    private static final byte UNKNOWN = 0;
-    private static final byte VARFIBER = 1;
-    private static final byte PLAIN = 2;
     private static final Object NULL = new Object();
 
     private final Channel<T> ch;
     private final Callable<T> f;
     private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<VarFiber<?>, Boolean>newConcurrentHashMap());
 
-    private final ThreadLocal<TLVar> tlv = new ThreadLocal<TLVar>() {
-        @Override
-        protected TLVar initialValue() {
-            return new TLVar();
-        }
-    };
+    private final ThreadLocal<TLVar> tlv = ThreadLocal.withInitial(() -> new TLVar());
 
     private class TLVar {
         final ReceivePort<T> c;
-        byte type;
         T val;
 
         public TLVar() {
@@ -78,7 +72,7 @@ public class Var<T> {
         this.f = f;
 
         if (f != null)
-            new VarFiber<T>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).start();
+            new VarFiber<>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).fiber.start();
     }
 
     /**
@@ -162,16 +156,6 @@ public class Var<T> {
      */
     public T get() throws InterruptedException {
         TLVar tl = tlv.get();
-        if (tl.type == UNKNOWN) {
-            co.paralleluniverse.fibers.Fiber currentFiber = co.paralleluniverse.fibers.Fiber.currentFiber();
-            if (currentFiber != null && currentFiber instanceof VarFiber) {
-                final VarFiber<?> vf = (VarFiber<?>) currentFiber;
-                tl.type = VARFIBER;
-                registeredFibers.add(vf);
-                vf.registeredVars.add(this);
-            } else
-                tl.type = PLAIN;
-        }
 
         try {
             final T val;
@@ -208,55 +192,54 @@ public class Var<T> {
         return val;
     }
 
-    private static class VarFiber<T> extends co.paralleluniverse.fibers.Fiber<Void> {
+    private static class VarFiber<T> {
+        private final Fiber<Void> fiber;
         private final WeakReference<Var<T>> var;
-        final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.<Var<?>, Boolean>newConcurrentHashMap());
         private volatile boolean hasNewVal;
 
+        private final Callable<Void> program = new Callable<>() {
+            @Override
+            public Void call() {
+                Var<T> v = null;
+                try {
+                    for (;;) {
+                        hasNewVal = false;
+                        Var.record("run", "Fiber %s for var %s computing new value", this, var);
+                        v = var.get();
+                        if (v == null)
+                            break;
+                        T newVal = v.f.call();
+                        Var.record("run", "Fiber %s for var %s computed new value %s", this, var, newVal);
+                        v.set(newVal);
+                        while (!hasNewVal) {
+                            Var.record("run", "Fiber %s for var %s parking", this, var);
+                            co.paralleluniverse.fibers.Fiber.park(v);
+                        }
+                    }
+                } catch (Throwable t) {
+                    if (v != null)
+                        v.ch.close(t);
+                } finally {
+                    Var.record("run", "Fiber %s for var %s terminated", this, var);
+                }
+                return null;
+            }
+        };
+
         VarFiber(Executor scheduler, Var<T> v) {
-            super(scheduler);
-            this.var = new WeakReference<Var<T>>(v);
+            this.fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, program);
+            this.var = new WeakReference<>(v);
         }
 
         VarFiber(Var<T> v) {
-            this.var = new WeakReference<Var<T>>(v);
+            this.fiber = new co.paralleluniverse.fibers.Fiber<>(program);
+            this.var = new WeakReference<>(v);
         }
 
         void signalNewValue(Var var) {
             Var.record("signalNewValue", "Fiber %s for var %s signalled by %s", this, this.var, var);
             hasNewVal = true;
-            unpark(var);
-        }
-
-        @Override
-        protected Void run() throws  InterruptedException {
-            Var<T> v = null;
-            try {
-                for (;;) {
-                    hasNewVal = false;
-                    Var.record("run", "Fiber %s for var %s computing new value", this, var);
-                    v = var.get();
-                    if (v == null)
-                        break;
-                    T newVal = v.f.run();
-                    Var.record("run", "Fiber %s for var %s computed new value %s", this, var, newVal);
-                    v.set(newVal);
-                    while (!hasNewVal) {
-                        Var.record("run", "Fiber %s for var %s parking", this, var);
-                        Fiber.park(v);
-                    }
-                }
-            } catch (Throwable t) {
-                if (v != null)
-                    v.ch.close(t);
-            } finally {
-                Var.record("run", "Fiber %s for var %s terminated", this, var);
-                for (Var<?> v1 : registeredVars) {
-                    v1.registeredFibers.remove(this);
-                    v1.notifyRegistered();
-                }
-            }
-            return null;
+            fiber.unpark();
         }
     }
 

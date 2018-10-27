@@ -14,15 +14,16 @@
 package co.paralleluniverse.concurrent.util;
 
 import co.paralleluniverse.common.test.TestUtil;
-import java.util.concurrent.BlockingQueue;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
+
+import java.util.concurrent.BlockingQueue;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -34,15 +35,14 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
 
-    public SingleConsumerNonblockingProducerPriorityQueueTest() {
-    }
-    BlockingQueue<Foo> q;
+    private BlockingQueue<Foo> q;
 
     @Before
     public void setUp() {
-        q = new SingleConsumerNonblockingProducerQueue<Foo>(new ConcurrentSkipListPriorityQueue<Foo>());
+        q = new SingleConsumerNonblockingProducerQueue<>(new ConcurrentSkipListPriorityQueue<>());
     }
 
+    /** @noinspection ConstantConditions*/
     @Test
     public void simpleProiorityTest() throws Exception {
         int index = 0;
@@ -50,7 +50,7 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
         q.put(new Foo(10, index++));
         q.put(new Foo(3, index++));
         q.put(new Foo(7, index++));
-        q.put(new Foo(20, index++));
+        q.put(new Foo(20, index));
 
         assertThat(q.size(), is(5));
         assertThat(q.poll().priority, is(3));
@@ -65,11 +65,12 @@ public class SingleConsumerNonblockingProducerPriorityQueueTest {
         final int priority;
         final int index;
 
-        public Foo(int priority, int index) {
+        Foo(int priority, int index) {
             this.priority = priority;
             this.index = index;
         }
 
+        /** @noinspection NullableProblems*/
         @Override
         public int compareTo(Foo o) {
             return this.priority - o.priority;
