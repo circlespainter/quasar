@@ -274,7 +274,7 @@ public class FiberAsyncTest {
         assertThat(started.get(), is(true));
         assertThat(interrupted.get(), is(true));
     }
-    
+
     @Test
     public void testRunBlocking() throws Exception {
         final Fiber fiber = new Fiber<>(scheduler, () -> {

@@ -326,9 +326,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
                 setResult(target.call());
             } catch (final Exception e) {
                 setException(e);
-                if (e instanceof RuntimeException)
-                    throw (RuntimeException) e;
-                throw new RuntimeException(e);
+                // TODO use exc. handler
             }
         };
 
@@ -343,14 +341,14 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     public final void interrupt() {
         if (fiberThread != null)
             fiberThread.interrupt();
-        else
-            interrupted = true;
+
+        interrupted = true;
     }
 
     @Override
     public final boolean isInterrupted() {
         if (fiberThread != null)
-            return fiberThread.isInterrupted();
+            return fiberThread.isInterrupted() || interrupted;
         else
             return interrupted;
     }
@@ -390,7 +388,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         try {
             return future().get();
         } catch (RuntimeExecutionException t) {
-            throw new ExecutionException(t.getCause());
+            throw new ExecutionException(unrollExecutionExceptions(t.getCause()));
         }
     }
 
@@ -399,8 +397,15 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         try {
             return future().get(timeout, unit);
         } catch (RuntimeExecutionException t) {
-            throw new ExecutionException(t.getCause());
+            throw new ExecutionException(unrollExecutionExceptions(t.getCause()));
         }
+    }
+
+    private Throwable unrollExecutionExceptions(Throwable t) {
+        if (t instanceof ExecutionException && t != t.getCause() && t.getCause() != null)
+            return unrollExecutionExceptions(t.getCause());
+
+        return t;
     }
 
     @Override
