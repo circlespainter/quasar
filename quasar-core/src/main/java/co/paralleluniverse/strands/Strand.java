@@ -474,6 +474,10 @@ public abstract class Strand {
         LockSupport.parkNanos(blocker, nanos);
     }
 
+    public static void park(int count, TimeUnit unit) {
+        parkNanos(TimeUnit.NANOSECONDS.convert(count, unit));
+    }
+
     /**
      * Disables the current strand for scheduling purposes, until
      * the specified deadline, unless the permit is available.

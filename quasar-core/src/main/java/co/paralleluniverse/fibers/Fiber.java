@@ -292,8 +292,8 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         this.result.set(res);
     }
 
-    void setException(Exception e) {
-        this.result.setException(e);
+    void setException(Throwable t) {
+        this.result.setException(t);
     }
 
     private static Fiber getCurrentFiber() {
@@ -324,8 +324,8 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
                     fiberThread.interrupt();
                 }
                 setResult(target.call());
-            } catch (final Exception e) {
-                setException(e);
+            } catch (final Throwable t) {
+                setException(t);
                 // TODO use exc. handler
             }
         };
