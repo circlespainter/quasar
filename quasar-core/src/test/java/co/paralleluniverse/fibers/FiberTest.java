@@ -258,6 +258,37 @@ public class FiberTest implements Serializable {
         assertThat(tl1.get(), is("foo"));
     }
 
+
+    @Test
+    public void testInheritThreadLocals_JDKLoom() {
+        final ThreadLocal<String> tl1 = new ThreadLocal<>();
+        tl1.set("foo");
+
+        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, () -> {
+            try {
+                assertThat(tl1.get(), is("foo"));
+
+                Fiber.sleep(100);
+
+                assertThat(tl1.get(), is("foo"));
+
+                tl1.set("koko");
+
+                assertThat(tl1.get(), is("koko"));
+
+                Fiber.sleep(100);
+
+                assertThat(tl1.get(), is("koko"));
+            } catch (final InterruptedException ie) {
+                throw new RuntimeException(ie);
+            }
+        });
+        fiber.schedule();
+        fiber.await();
+
+        assertThat(tl1.get(), is("foo"));
+    }
+
     @Test
     public void testThreadLocalsParallel() throws Exception {
         final ThreadLocal<String> tl = new ThreadLocal<>();
@@ -500,6 +531,82 @@ public class FiberTest implements Serializable {
         cond.signalAll();
 
         fiber.join();
+    }
+
+    @Test
+    public void testFiberDoesNotPropagatesUncaughtExceptionUponAwait_JDKLoom() {
+        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, () -> {
+            throw new RuntimeException("Test");
+        }).schedule();
+
+        try {
+            fiber.await();
+        } catch (final Exception t) {
+            fail();
+        }
+    }
+
+    @Test
+    public void testDumpStackWaitingFiberWhenCalledFromFiber_JDKLoom() throws Exception {
+        final AtomicBoolean flag = new AtomicBoolean(false);
+
+        final AtomicReference<java.lang.Thread> fiberThreadRef = new AtomicReference<>();
+        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, new Runnable() {
+            @Override
+            public void run() {
+                fiberThreadRef.set(Thread.currentThread());
+                try {
+                    foo();
+                } catch (final InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            private void foo() throws InterruptedException {
+                while (!flag.get())
+                    Thread.sleep(10);
+            }
+        }).schedule();
+
+        Thread.sleep(100);
+
+        final CompletableFuture<Void> res = new CompletableFuture<>();
+        new java.lang.Fiber(scheduler, () -> {
+            try {
+                assertNotNull(fiber);
+                assertNotNull(fiberThreadRef.get());
+                assertTrue(fiber.isAlive());
+                assertTrue(fiberThreadRef.get().isAlive());
+
+                final StackTraceElement[] st = fiberThreadRef.get().getStackTrace();
+                assertNotNull(st);
+                assertTrue(st.length > 0);
+
+                // Strand.printStackTrace(st, System.err);
+                assertThat(st[0].getMethodName(), equalTo("park"));
+                boolean found = false;
+                for (final StackTraceElement ste : st) {
+                    if (ste.getMethodName().equals("foo")) {
+                        found = true;
+                        break;
+                    }
+                }
+                assertThat(found, is(true));
+                assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
+                assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
+                res.complete(null);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                res.completeExceptionally(e);
+            }
+        }).schedule();
+
+        flag.set(true);
+        try {
+            assertNull(res.get());
+        } catch (Exception e) {
+            fail();
+        }
     }
 
     @Test

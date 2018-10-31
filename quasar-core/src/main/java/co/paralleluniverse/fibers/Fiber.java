@@ -64,7 +64,6 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         return idGen.incrementAndGet();
     }
 
-
     private volatile boolean interrupted;
 
     private String name;
@@ -87,11 +86,12 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     public Fiber(String name, Executor scheduler, Callable<V> target) {
         this.scheduler = scheduler != null ? scheduler : DefaultFiberScheduler.getInstance();
         this.fid = nextFiberId();
-        setName(name);
-        Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         this.target = target;
         this.result = new Val<>();
 
+        setName(name);
+
+        final Strand parent = Strand.currentStrand(); // retaining the parent as a field is a huge, complex memory leak
         if (Debug.isDebug()) {
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s", name, scheduler, parent, target);
         }
@@ -326,15 +326,23 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
                 setResult(target.call());
             } catch (final Throwable t) {
                 setException(t);
-                // TODO use exc. handler
+                runFiberExceptionThroughHandlers(t);
             }
         };
 
         fiber = new java.lang.Fiber(scheduler, task);
         FiberStrand.set(fiber, this);
+
         fiber = fiber.schedule();
 
         return this;
+    }
+
+    private void runFiberExceptionThroughHandlers(Throwable t) {
+        if (uncaughtExceptionHandler != null)
+            uncaughtExceptionHandler.uncaughtException(this, t);
+        else if (defaultUncaughtExceptionHandler != null)
+            defaultUncaughtExceptionHandler.uncaughtException(this, t);
     }
 
     @Override
@@ -481,7 +489,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     @Override
     public final StackTraceElement[] getStackTrace() {
-        return Thread.currentThread().getStackTrace();
+        return fiberThread != null ? fiberThread.getStackTrace() : null;
     }
 
     public Executor getScheduler() {
