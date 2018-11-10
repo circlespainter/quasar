@@ -27,6 +27,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.Serializable;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -131,7 +134,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testCancel1() throws Exception {
+    public void testCancelSleepingFiberInterruptible() throws Exception {
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean terminated = new AtomicBoolean();
         final Fiber fiber = new Fiber(scheduler, () -> {
@@ -152,7 +155,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testCancel2() throws Exception {
+    public void testCancelFiberBeforeStart() throws Exception {
         final AtomicBoolean started = new AtomicBoolean();
         final AtomicBoolean terminated = new AtomicBoolean();
         final Fiber fiber = new Fiber(scheduler, () -> {
@@ -170,7 +173,7 @@ public class FiberTest implements Serializable {
         try {
             fiber.join(5, TimeUnit.MILLISECONDS);
             fail();
-        } catch (CancellationException ignored) {}
+        } catch (final CancellationException ignored) {}
         assertThat(started.get(), is(false));
         assertThat(terminated.get(), is(false));
     }
@@ -207,33 +210,10 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testNoLocals() throws Exception { // shitty test
-        final ThreadLocal<String> tl1 = new ThreadLocal<>();
-        final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
-        tl1.set("foo");
-        tl2.set("bar");
-
-        final Fiber fiber = new Fiber(scheduler, () -> {
-            assertThat(tl1.get(), is(nullValue()));
-            assertThat(tl2.get(), is(nullValue()));
-
-            tl1.set("koko");
-            tl2.set("bubu");
-
-            assertThat(tl1.get(), is("koko"));
-            assertThat(tl2.get(), is("bubu"));
-        });
-        fiber.start();
-        fiber.join();
-
-        assertThat(tl1.get(), is("foo"));
-        assertThat(tl2.get(), is("bar"));
-    }
-
-    @Test
     public void testInheritThreadLocals() throws Exception {
-        final ThreadLocal<String> tl1 = new ThreadLocal<>();
+        final InheritableThreadLocal<String> tl1 = new InheritableThreadLocal<>();
         tl1.set("foo");
+        assertThat(tl1.get(), is("foo"));
 
         final Fiber<Void> fiber = new Fiber<>(scheduler, () -> {
             assertThat(tl1.get(), is("foo"));
@@ -254,37 +234,6 @@ public class FiberTest implements Serializable {
         });
         fiber.start();
         fiber.join();
-
-        assertThat(tl1.get(), is("foo"));
-    }
-
-
-    @Test
-    public void testInheritThreadLocals_JDKLoom() {
-        final ThreadLocal<String> tl1 = new ThreadLocal<>();
-        tl1.set("foo");
-
-        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, () -> {
-            try {
-                assertThat(tl1.get(), is("foo"));
-
-                Fiber.sleep(100);
-
-                assertThat(tl1.get(), is("foo"));
-
-                tl1.set("koko");
-
-                assertThat(tl1.get(), is("koko"));
-
-                Fiber.sleep(100);
-
-                assertThat(tl1.get(), is("koko"));
-            } catch (final InterruptedException ie) {
-                throw new RuntimeException(ie);
-            }
-        });
-        fiber.schedule();
-        fiber.await();
 
         assertThat(tl1.get(), is("foo"));
     }
@@ -361,7 +310,7 @@ public class FiberTest implements Serializable {
         assertThat(st, is(nullValue()));
     }
 
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new Runnable() {
             @Override
@@ -391,17 +340,16 @@ public class FiberTest implements Serializable {
                 final StackTraceElement[] st = Fiber.currentFiber().getStackTrace();
 
                 // Strand.printStackTrace(st, System.err);
+                assertTrue(st.length > 1);
                 assertThat(st[0].getMethodName(), equalTo("getStackTrace"));
-                assertThat(st[1].getMethodName(), equalTo("foo"));
                 assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
-                assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
             }
         }).start();
 
         fiber.join();
     }
 
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackRunningFiber() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new Runnable() {
             @Override
@@ -437,7 +385,7 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
@@ -464,7 +412,8 @@ public class FiberTest implements Serializable {
 
         final StackTraceElement[] st = fiber.getStackTrace();
 
-        // Strand.printStackTrace(st, System.err);
+        assertNotNull(st);
+        assertTrue(st.length > 0);
         assertThat(st[0].getMethodName(), equalTo("park"));
         boolean found = false;
         for (final StackTraceElement ste : st) {
@@ -483,7 +432,7 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
@@ -533,20 +482,7 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test
-    public void testFiberDoesNotPropagatesUncaughtExceptionUponAwait_JDKLoom() {
-        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, () -> {
-            throw new RuntimeException("Test");
-        }).schedule();
-
-        try {
-            fiber.await();
-        } catch (final Exception t) {
-            fail();
-        }
-    }
-
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiberWhenCalledFromFiber_JDKLoom() throws Exception {
         final AtomicBoolean flag = new AtomicBoolean(false);
 
@@ -595,21 +531,21 @@ public class FiberTest implements Serializable {
                 assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
                 assertThat(st[st.length - 1].getClassName(), equalTo(Fiber.class.getName()));
                 res.complete(null);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                res.completeExceptionally(e);
+            } catch (final Throwable t) {
+                t.printStackTrace();
+                res.completeExceptionally(t);
             }
         }).schedule();
 
         flag.set(true);
         try {
             assertNull(res.get());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             fail();
         }
     }
 
-    @Test
+    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackSleepingFiber() throws Exception {
         // sleep is a special case
         final Fiber<Void> fiber = new Fiber<>(scheduler, new Callable<Void>() {
@@ -628,7 +564,8 @@ public class FiberTest implements Serializable {
 
         final StackTraceElement[] st = fiber.getStackTrace();
 
-        // Strand.printStackTrace(st, System.err);
+        assertNotNull(st);
+        assertTrue(st.length > 0);
         assertThat(st[0].getMethodName(), equalTo("sleep"));
         boolean found = false;
         for (final StackTraceElement aSt : st) {

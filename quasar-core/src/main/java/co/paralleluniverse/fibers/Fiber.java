@@ -310,6 +310,9 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
      */
     @Override
     public final Fiber<V> start() {
+        if (interrupted)
+            return this;
+
         if (fiber != null)
             throw new IllegalThreadStateException("Fiber has already been started or has died");
 
@@ -423,10 +426,16 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
-        if (fiber == null)
-            return false;
+        if (fiber == null) {
+            final CancellationException ce = new CancellationException();
+            setException(ce);
+            runFiberExceptionThroughHandlers(ce);
+            return interrupted = true;
+        }
 
         fiber.cancel();
+        if (mayInterruptIfRunning)
+            fiberThread.interrupt(); // TODO temporary, should be supported directly by fiber
         interrupted = fiber.isCancelled();
         return interrupted;
     }
@@ -489,6 +498,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     @Override
     public final StackTraceElement[] getStackTrace() {
+        // TODO temporary, might be supported directly by java.lang.Fiber in the future; also it doesn't work from other strands
         return fiberThread != null ? fiberThread.getStackTrace() : null;
     }
 
