@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
+import static co.paralleluniverse.strands.Strand.unpark;
+
 /**
  * A dataflow variable.
  * Represents a variable whose value can be set multiple times and by multiple strands, and whose changing values can be monitored and
@@ -38,19 +40,24 @@ import java.util.concurrent.Executor;
  * @author pron
  */
 public class Var<T> {
+    private static final byte UNKNOWN = 0;
+    private static final byte VARFIBER = 1;
+    private static final byte PLAIN = 2;
     private static final Object NULL = new Object();
+    private static final String CTX_VAR_FIBER = "varFiber";
 
     private final Channel<T> ch;
     private final Callable<T> f;
-    private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<VarFiber<?>, Boolean>newConcurrentHashMap());
+    private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.newConcurrentHashMap());
 
-    private final ThreadLocal<TLVar> tlv = ThreadLocal.withInitial(() -> new TLVar());
+    private final ThreadLocal<TLVar> tlv = ThreadLocal.withInitial(TLVar::new);
 
     private class TLVar {
         final ReceivePort<T> c;
+        byte type;
         T val;
 
-        public TLVar() {
+        TLVar() {
             this.c = Channels.newTickerConsumerFor(ch);
         }
     }
@@ -156,6 +163,16 @@ public class Var<T> {
      */
     public T get() throws InterruptedException {
         TLVar tl = tlv.get();
+        if (tl.type == UNKNOWN) {
+            Fiber currentFiber = Fiber.currentFiber();
+            if (currentFiber != null && currentFiber.contextGet(CTX_VAR_FIBER) != null) {
+                final VarFiber<?> vf = (VarFiber<?>) currentFiber.contextGet(CTX_VAR_FIBER);
+                tl.type = VARFIBER;
+                registeredFibers.add(vf);
+                vf.registeredVars.add(this);
+            } else
+                tl.type = PLAIN;
+        }
 
         try {
             final T val;
@@ -195,6 +212,7 @@ public class Var<T> {
     private static class VarFiber<T> {
         private final Fiber<Void> fiber;
         private final WeakReference<Var<T>> var;
+        final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.newConcurrentHashMap());
         private volatile boolean hasNewVal;
 
         private final Callable<Void> program = new Callable<>() {
@@ -221,6 +239,11 @@ public class Var<T> {
                         v.ch.close(t);
                 } finally {
                     Var.record("run", "Fiber %s for var %s terminated", this, var);
+                    for (final Var<?> v1 : registeredVars) {
+                        v1.registeredFibers.remove(VarFiber.this);
+                        v1.notifyRegistered();
+                    }
+
                 }
                 return null;
             }
@@ -228,18 +251,20 @@ public class Var<T> {
 
         VarFiber(Executor scheduler, Var<T> v) {
             this.fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, program);
+            this.fiber.contextSet(CTX_VAR_FIBER, this);
             this.var = new WeakReference<>(v);
         }
 
         VarFiber(Var<T> v) {
             this.fiber = new co.paralleluniverse.fibers.Fiber<>(program);
+            this.fiber.contextSet(CTX_VAR_FIBER, this);
             this.var = new WeakReference<>(v);
         }
 
         void signalNewValue(Var var) {
             Var.record("signalNewValue", "Fiber %s for var %s signalled by %s", this, this.var, var);
             hasNewVal = true;
-            fiber.unpark();
+            unpark(fiber);
         }
     }
 

@@ -22,6 +22,7 @@ import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.dataflow.Val;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -75,6 +76,17 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     private transient Val<V> result; // transient b/c completed fibers are not serialized
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
+
+    private Map<String, Object> context = new ConcurrentHashMap<>();
+
+    public Object contextGet(String key) {
+        return context.get(key);
+    }
+
+    public Object contextSet(String key, Object value) {
+        context.put(key, value);
+        return value;
+    }
 
     /**
      * Creates a new fiber from the given {@link Callable}.
