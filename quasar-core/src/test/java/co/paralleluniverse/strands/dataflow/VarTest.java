@@ -16,7 +16,6 @@ package co.paralleluniverse.strands.dataflow;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -26,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -114,7 +113,7 @@ public class VarTest {
     }
 
     @Test
-    public void testHistory1() throws Exception {
+    public void testHistory1() {
         final Var<Integer> var = new Var<>(10);
 
         final co.paralleluniverse.fibers.Fiber<Integer> f1 = new co.paralleluniverse.fibers.Fiber<>(() -> {
@@ -141,7 +140,7 @@ public class VarTest {
     }
 
     @Test
-    public void testHistory2() throws Exception {
+    public void testHistory2() {
         final Var<Integer> var = new Var<>(2);
 
         final co.paralleluniverse.fibers.Fiber<Integer> f1 = new co.paralleluniverse.fibers.Fiber<>(() -> {
@@ -166,7 +165,15 @@ public class VarTest {
         f2.join();
     }
 
-    @Test @Ignore
+    @Test
+    public void testCurrentFiberIsNotNullInFiber_JDKLook() {
+        Fiber.schedule(() -> {
+            for (int i = 0 ; i < 10000 ; i++)
+                assertNotNull(Fiber.current().get());
+        }).awaitTermination();
+    }
+
+    @Test
     public void testFunction1() throws Exception {
         final Channel<Integer> ch = Channels.newChannel(-1);
 

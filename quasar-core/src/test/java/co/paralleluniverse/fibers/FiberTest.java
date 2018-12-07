@@ -105,13 +105,7 @@ public class FiberTest implements Serializable {
             return 123;
         }).start();
 
-        final Fiber<Integer> fiber2 = new Fiber<>(scheduler, () -> {
-            try {
-                return fiber1.get();
-            } catch (ExecutionException e) {
-                throw Exceptions.rethrow(e.getCause());
-            }
-        }).start();
+        final Fiber<Integer> fiber2 = new Fiber<>(scheduler, (Callable<Integer>) fiber1::get).start();
 
         int res = fiber2.get();
 
@@ -329,7 +323,7 @@ public class FiberTest implements Serializable {
     }
 
     @Test
-    public void testDumpStackCurrentFiber() throws Exception {
+    public void testDumpStackCurrentFiber() {
         final Fiber fiber = new Fiber(scheduler, new Runnable() {
             @Override
             public void run() {
@@ -342,7 +336,6 @@ public class FiberTest implements Serializable {
                 // Strand.printStackTrace(st, System.err);
                 assertTrue(st.length > 1);
                 assertThat(st[0].getMethodName(), equalTo("getStackTrace"));
-                assertThat(st[st.length - 1].getMethodName(), equalTo("run"));
             }
         }).start();
 
@@ -487,7 +480,7 @@ public class FiberTest implements Serializable {
         final AtomicBoolean flag = new AtomicBoolean(false);
 
         final AtomicReference<java.lang.Thread> fiberThreadRef = new AtomicReference<>();
-        final java.lang.Fiber fiber = new java.lang.Fiber(scheduler, new Runnable() {
+        final java.lang.Fiber fiber = java.lang.Fiber.schedule(scheduler, new Runnable() {
             @Override
             public void run() {
                 fiberThreadRef.set(Thread.currentThread());
@@ -502,12 +495,12 @@ public class FiberTest implements Serializable {
                 while (!flag.get())
                     Thread.sleep(10);
             }
-        }).schedule();
+        });
 
         Thread.sleep(100);
 
         final CompletableFuture<Void> res = new CompletableFuture<>();
-        new java.lang.Fiber(scheduler, () -> {
+        java.lang.Fiber.schedule(scheduler, () -> {
             try {
                 assertNotNull(fiber);
                 assertNotNull(fiberThreadRef.get());
@@ -535,7 +528,7 @@ public class FiberTest implements Serializable {
                 t.printStackTrace();
                 res.completeExceptionally(t);
             }
-        }).schedule();
+        });
 
         flag.set(true);
         try {
@@ -614,7 +607,7 @@ public class FiberTest implements Serializable {
         try {
             f.join();
             fail();
-        } catch (ExecutionException e) {
+        } catch (CompletionException e) {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
 
@@ -633,7 +626,7 @@ public class FiberTest implements Serializable {
         try {
             f.join();
             fail();
-        } catch (ExecutionException e) {
+        } catch (CompletionException e) {
             assertThat(e.getCause().getMessage(), equalTo("foo"));
         }
         final Throwable th = t.get();

@@ -28,17 +28,6 @@ import java.util.concurrent.*;
  */
 public final class FiberUtil {
     /**
-     * Turns a fiber into a {@link Future}.
-     *
-     * @param <V>
-     * @param fiber the fiber
-     * @return a {@link Future} representing the fiber.
-     */
-    public static <V> Future<V> toFuture(Fiber<V> fiber) {
-        return fiber;
-    }
-
-    /**
      * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
      * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
      *
@@ -117,25 +106,8 @@ public final class FiberUtil {
      * @return the operations return value
      * @throws InterruptedException
      */
-    public static <V> V runInFiberRuntime(Executor scheduler, Callable<V> target) throws InterruptedException {
-        try {
-            return new co.paralleluniverse.fibers.Fiber<V>(scheduler, target).start().get();
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrow(e.getCause());
-        }
-    }
-
-    /**
-     * Runs an action in a new fiber and awaits the fiber's termination.
-     * Unlike {@link #runInFiber(Runnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
-     * any checked exception thrown by the operation in a {@link RuntimeException}.
-     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
-     *
-     * @param target the operation
-     * @throws InterruptedException
-     */
-    public static void runInFiberRuntime(Runnable target) throws InterruptedException {
-        runInFiberRuntime(DefaultFiberScheduler.getInstance(), target);
+    public static <V> V runInFiberRuntime(Executor scheduler, Callable<V> target) {
+        return new co.paralleluniverse.fibers.Fiber<V>(scheduler, target).start().get();
     }
 
     /**
@@ -147,84 +119,9 @@ public final class FiberUtil {
      * @param target    the operation
      * @throws InterruptedException
      */
-    public static void runInFiberRuntime(Executor scheduler, Runnable target) throws InterruptedException {
-        try {
-            new Fiber<Void>(scheduler, target).start().join();
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrow(e.getCause());
-        }
+    public static void runInFiberRuntime(Executor scheduler, Runnable target) {
+        new Fiber<Void>(scheduler, target).start().join();
     }
-
-    /**
-     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
-     * Unlike {@link #runInFiber(Callable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
-     * any checked exception thrown by the operation in a {@link RuntimeException}.
-     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
-     *
-     * @param <V>
-     * @param target the operation
-     * @return the operations return value
-     * @throws InterruptedException
-     */
-    public static <V, X extends Exception> V runInFiberChecked(Callable<V> target, Class<X> exceptionType) throws X, InterruptedException {
-        return runInFiberChecked(DefaultFiberScheduler.getInstance(), target, exceptionType);
-    }
-
-    /**
-     * Runs an action in a new fiber, awaits the fiber's termination, and returns its result.
-     * Unlike {@link #runInFiber(Executor, Callable) runInFiber} this method does not throw {@link ExecutionException}, but wraps
-     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
-     * which case the checked exception is thrown as-is.
-     *
-     * @param <V>
-     * @param scheduler     the {@link Executor} to use when scheduling the fiber.
-     * @param target        the operation
-     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
-     * @return the operations return value
-     * @throws InterruptedException
-     */
-    public static <V, X extends Exception> V runInFiberChecked(Executor scheduler, Callable<V> target, Class<X> exceptionType) throws X, InterruptedException {
-        try {
-            return new co.paralleluniverse.fibers.Fiber<V>(scheduler, target).start().get();
-        } catch (ExecutionException ex) {
-            throw throwChecked(ex, exceptionType);
-        }
-    }
-
-    /**
-     * Runs an action in a new fiber and awaits the fiber's termination.
-     * Unlike {@link #runInFiber(Runnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
-     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
-     * which case the checked exception is thrown as-is.
-     * The new fiber is scheduled by the {@link DefaultFiberScheduler default scheduler}.
-     *
-     * @param target        the operation
-     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
-     * @throws InterruptedException
-     */
-    public static <X extends Exception> void runInFiberChecked(Runnable target, Class<X> exceptionType) throws X, InterruptedException {
-        runInFiberChecked(DefaultFiberScheduler.getInstance(), target, exceptionType);
-    }
-
-    /**
-     * Runs an action in a new fiber and awaits the fiber's termination.
-     * Unlike {@link #runInFiber(Runnable)  runInFiber} this method does not throw {@link ExecutionException}, but wraps
-     * any checked exception thrown by the operation in a {@link RuntimeException}, unless it is of the given {@code exception type}, in
-     * which case the checked exception is thrown as-is.
-     *
-     * @param scheduler     the {@link Executor} to use when scheduling the fiber.
-     * @param target        the operation
-     * @param exceptionType a checked exception type that will not be wrapped if thrown by the operation, but thrown as-is.
-     * @throws InterruptedException
-     */
-    public static <X extends Exception> void runInFiberChecked(Executor scheduler, Runnable target, Class<X> exceptionType) throws X, InterruptedException {
-        try {
-            new co.paralleluniverse.fibers.Fiber<Void>(scheduler, target).start().join();
-        } catch (ExecutionException ex) {
-            throw throwChecked(ex, exceptionType);
-        }
-    }
-
     /**
      * Blocks on the input fibers and creates a new list from the results. The result list is the same order as the
      * input list.
@@ -236,11 +133,7 @@ public final class FiberUtil {
 
         //TODO on interrupt, should all input fibers be canceled?
         for (final Fiber<V> f : fibers) {
-            try {
-                results.add(f.get());
-            } catch (ExecutionException e) {
-                throw Exceptions.rethrowUnwrap(e);
-            }
+            results.add(f.get());
         }
 
         return Collections.unmodifiableList(results);
@@ -276,18 +169,14 @@ public final class FiberUtil {
         final long deadline = System.nanoTime() + left;
 
         //TODO on interrupt, should all input fibers be canceled?
-        try {
-            for (final Fiber<V> f : fibers) {
-                if (left >= 0) {
-                    results.add(f.get(left, TimeUnit.NANOSECONDS));
-                    left = deadline - System.nanoTime();
-                } else
-                    throw new TimeoutException("timed out sequencing fiber results");
-            }
-            return Collections.unmodifiableList(results);
-        } catch (ExecutionException e) {
-            throw Exceptions.rethrowUnwrap(e);
+        for (final Fiber<V> f : fibers) {
+            if (left >= 0) {
+                results.add(f.get(left, TimeUnit.NANOSECONDS));
+                left = deadline - System.nanoTime();
+            } else
+                throw new TimeoutException("timed out sequencing fiber results");
         }
+        return Collections.unmodifiableList(results);
     }
 
     /**

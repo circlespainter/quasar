@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -76,6 +76,7 @@ public abstract class Strand {
      * @return {@code this}
      */
     public abstract Strand setName(String name);
+
     /**
      * Tests whether this strand is alive, namely it has been started but not yet terminated.
      */
@@ -110,7 +111,6 @@ public abstract class Strand {
      *
      * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
      * @param unit    the time unit of {@code timeout}.
-     *
      * @throws TimeoutException     if this strand did not terminate by the time the timeout has elapsed.
      * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
      *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
@@ -128,7 +128,7 @@ public abstract class Strand {
 
     /**
      * Interrupts this strand.
-     *
+     * <p>
      * If this strand is blocked, the blocking function will throw an {@link InterruptedException}.
      * Otherwise, the strand may test its interrupted status with the {@link #interrupted()} or {@link #isInterrupted()} method.
      */
@@ -200,7 +200,7 @@ public abstract class Strand {
      * @return A strand representing the current fiber or thread
      */
     public static Strand currentStrand() {
-        if (java.lang.Strand.currentStrand() instanceof java.lang.Fiber)
+        if (java.lang.Fiber.current().isPresent())
             return Fiber.currentFiber();
 
         return ThreadStrand.get(Thread.currentThread());
@@ -239,7 +239,6 @@ public abstract class Strand {
      * This method blocks until this strand terminates.
      *
      * @param strand the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
-     *
      * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
      *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
      * @throws InterruptedException
@@ -260,7 +259,6 @@ public abstract class Strand {
      * @param strand  the strand to join. May be an object of type {@code Strand}, {@code Fiber} or {@code Thread}.
      * @param timeout the maximum duration to wait for the strand to terminate in the time unit specified by {@code unit}.
      * @param unit    the time unit of {@code timeout}.
-     *
      * @throws TimeoutException     if this strand did not terminate by the time the timeout has elapsed.
      * @throws ExecutionException   if this strand has terminated as a result of an uncaught exception
      *                              (which will be the {@link Throwable#getCause() cause} of the thrown {@code ExecutionException}.
@@ -296,11 +294,10 @@ public abstract class Strand {
      * the precision and accuracy of system timers and schedulers.
      *
      * @param millis the length of time to sleep in milliseconds
-     *
      * @throws IllegalArgumentException if the value of {@code millis} is negative
      * @throws InterruptedException     if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     *                                  <i>interrupted status</i> of the current strand is
+     *                                  cleared when this exception is thrown.
      */
     public static void sleep(long millis) throws InterruptedException {
         Thread.sleep(millis);
@@ -314,12 +311,11 @@ public abstract class Strand {
      *
      * @param millis the length of time to sleep in milliseconds
      * @param nanos  {@code 0-999999} additional nanoseconds to sleep
-     *
      * @throws IllegalArgumentException if the value of {@code millis} is negative,
      *                                  or the value of {@code nanos} is not in the range {@code 0-999999}
      * @throws InterruptedException     if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     *                                  <i>interrupted status</i> of the current strand is
+     *                                  cleared when this exception is thrown.
      */
     public static void sleep(long millis, int nanos) throws InterruptedException {
         Thread.sleep(millis, nanos);
@@ -332,10 +328,9 @@ public abstract class Strand {
      *
      * @param duration the length of time to sleep in the time unit specified by {@code unit}.
      * @param unit     the time unit of {@code duration}.
-     *
      * @throws InterruptedException if any strand has interrupted the current strand. The
-     * <i>interrupted status</i> of the current strand is
-     * cleared when this exception is thrown.
+     *                              <i>interrupted status</i> of the current strand is
+     *                              cleared when this exception is thrown.
      */
     public static void sleep(long duration, TimeUnit unit) throws InterruptedException {
         unit.sleep(duration);
@@ -874,10 +869,14 @@ public abstract class Strand {
         private static final ConcurrentMap<Integer, Fiber> fiberStrands = new com.google.common.collect.MapMaker().weakValues().makeMap();
 
         public static Fiber get(java.lang.Fiber f) {
+            assert f != null;
+            assert System.identityHashCode(f) != 0;
             return fiberStrands.get(System.identityHashCode(f));
         }
 
         public static <V> void set(java.lang.Fiber f, Fiber<V> fiber) {
+            assert f != null;
+            assert System.identityHashCode(f) != 0;
             fiberStrands.put(System.identityHashCode(f), fiber);
         }
 

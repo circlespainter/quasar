@@ -54,7 +54,7 @@ public class SingleConsumerQueueChannel<Message> extends QueueChannel<Message> i
         if (owner == null)
             setStrand(co.paralleluniverse.strands.Strand.currentStrand());
         else
-            assert co.paralleluniverse.strands.Strand.equals(owner, Strand.currentStrand()) : "This method has been called by a different strand (" + Strand.currentStrand() + ") from that owning this object (" + owner + ")";
+            assert co.paralleluniverse.strands.Strand.equals(owner, co.paralleluniverse.strands.Strand.currentStrand()) : "This method has been called by a different strand (" + co.paralleluniverse.strands.Strand.currentStrand() + ") from that owning this object (" + owner + ")";
     }
 
     protected void checkClosed() throws EOFException {

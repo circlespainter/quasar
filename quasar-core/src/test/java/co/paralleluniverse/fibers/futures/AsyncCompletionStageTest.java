@@ -85,7 +85,7 @@ public class AsyncCompletionStageTest {
         try {
             fiber.get();
             fail();
-        } catch (ExecutionException e) {
+        } catch (CompletionException e) {
             assertThat(e.getCause().getMessage(), equalTo("haha!"));
         }
     }

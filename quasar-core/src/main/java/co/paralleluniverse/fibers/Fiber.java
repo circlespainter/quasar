@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2017, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -19,9 +19,9 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.strands.RunnableCallableUtils;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Stranded;
-import co.paralleluniverse.strands.dataflow.Val;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,7 +41,6 @@ import java.util.concurrent.locks.LockSupport;
  * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
  *
  * @param <V> The type of the fiber's result value. Should be set to {@link Void} if no value is to be returned by the fiber.
- *
  * @author pron
  */
 final public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
@@ -61,6 +60,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         Strand.printStackTrace(e.getStackTrace(), System.err);
     };
     private static final AtomicLong idGen = new AtomicLong(10000000L);
+
     private static long nextFiberId() {
         return idGen.incrementAndGet();
     }
@@ -71,10 +71,9 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     private /*final*/ transient long fid;
     private Callable<V> target;
     private Executor scheduler;
-    private java.lang.Fiber fiber;
+    private java.lang.Fiber<V> fiber;
     private java.lang.Thread fiberThread;
 
-    private transient Val<V> result; // transient b/c completed fibers are not serialized
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
 
     private Map<String, Object> context = new ConcurrentHashMap<>();
@@ -91,15 +90,14 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     /**
      * Creates a new fiber from the given {@link Callable}.
      *
-     * @param name      The name of the fiber (may be {@code null})
-     * @param target    the {@link Callable} for the fiber.
+     * @param name   The name of the fiber (may be {@code null})
+     * @param target the {@link Callable} for the fiber.
      */
     @SuppressWarnings("LeakingThisInConstructor")
     public Fiber(String name, Executor scheduler, Callable<V> target) {
         this.scheduler = scheduler != null ? scheduler : DefaultFiberScheduler.getInstance();
         this.fid = nextFiberId();
         this.target = target;
-        this.result = new Val<>();
 
         setName(name);
 
@@ -117,13 +115,9 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
 
-    public Fiber(java.lang.Fiber f) {
-        this((String) null, (Callable) null);
+    public Fiber(java.lang.Fiber<V> f) {
+        this((String) null, (Callable<V>) null);
         this.fiber = f;
-    }
-
-    private Future<V> future() {
-        return result;
     }
 
     @Override
@@ -182,6 +176,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     public Fiber(String name, Executor scheduler, Runnable target) {
         this(name, scheduler, (Callable<V>) RunnableCallableUtils.runnableToCallable(target));
     }
+
     /**
      * Creates a new Fiber from the given Runnable.
      * The new fiber has no name, and uses the default initial stack size.
@@ -224,8 +219,8 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
      * Creates a new child Fiber from the given {@link Runnable}.
      * This constructor may only be called from within another fiber. This fiber will use the same fork/join pool as the creating fiber.
      *
-     * @param name      The name of the fiber (may be null)
-     * @param target    the SuspendableRunnable for the Fiber.
+     * @param name   The name of the fiber (may be null)
+     * @param target the SuspendableRunnable for the Fiber.
      * @throws NullPointerException     when proto is null
      * @throws IllegalArgumentException when stackSize is &lt;= 0
      */
@@ -279,7 +274,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
      * @return {@code true} if called in a fiber; {@code false} otherwise.
      */
     public static boolean isCurrentFiber() {
-        return java.lang.Strand.currentStrand() instanceof java.lang.Fiber;
+        return java.lang.Fiber.current().isPresent();
     }
 
     @Override
@@ -300,24 +295,11 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         return current.isInterrupted();
     }
 
-    void setResult(V res) {
-        this.result.set(res);
-    }
-
-    void setException(Throwable t) {
-        this.result.setException(t);
-    }
-
-    private static Fiber getCurrentFiber() {
-        final java.lang.Strand currentStrand = java.lang.Strand.currentStrand();
-        if (!(currentStrand instanceof java.lang.Fiber))
-            return null;
-
-        return FiberStrand.get((java.lang.Fiber) currentStrand);
+    private static Fiber<?> getCurrentFiber() {
+        return java.lang.Fiber.current().map(FiberStrand::get).orElse(null);
     }
 
     /**
-     *
      * @return {@code this}
      */
     @Override
@@ -331,24 +313,25 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
         if (target == null)
             throw new IllegalThreadStateException("No target Callable has been provided");
 
-        final Runnable task = () -> {
+        final Callable<V> task = () -> {
+            // Either the newly scheduled fiber will set it first, or the scheduling strand
+            FiberStrand.set(java.lang.Fiber.current().get(), this);
             try {
                 fiberThread = Thread.currentThread();
                 if (interrupted) {
                     interrupted = false;
                     fiberThread.interrupt();
                 }
-                setResult(target.call());
+                return target.call();
             } catch (final Throwable t) {
-                setException(t);
                 runFiberExceptionThroughHandlers(t);
+                throw t;
             }
         };
 
-        fiber = new java.lang.Fiber(scheduler, task);
+        fiber = java.lang.Fiber.schedule(scheduler, task);
+        // Either the scheduling strand will set it first, or the newly scheduled fiber
         FiberStrand.set(fiber, this);
-
-        fiber = fiber.schedule();
 
         return this;
     }
@@ -397,38 +380,35 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     }
 
     @Override
-    public final void join() throws ExecutionException, InterruptedException {
+    public final void join() {
         get();
     }
 
     @Override
-    public final void join(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
+    public final void join(long timeout, TimeUnit unit) throws TimeoutException {
         get(timeout, unit);
     }
 
     @Override
-    public final V get() throws ExecutionException, InterruptedException {
-        try {
-            return future().get();
-        } catch (RuntimeExecutionException t) {
-            throw new ExecutionException(unrollExecutionExceptions(t.getCause()));
+    public final V get() {
+        checkInterrupted();
+
+        return fiber.join();
+    }
+
+    private void checkInterrupted() {
+        if (interrupted) {
+            if (fiber == null)
+                throw new CancellationException();
+//            throw new CompletionException(new InterruptedException());
         }
     }
 
     @Override
-    public final V get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        try {
-            return future().get(timeout, unit);
-        } catch (RuntimeExecutionException t) {
-            throw new ExecutionException(unrollExecutionExceptions(t.getCause()));
-        }
-    }
+    public final V get(long timeout, TimeUnit unit) throws TimeoutException {
+        checkInterrupted();
 
-    private Throwable unrollExecutionExceptions(Throwable t) {
-        if (t instanceof ExecutionException && t != t.getCause() && t.getCause() != null)
-            return unrollExecutionExceptions(t.getCause());
-
-        return t;
+        return fiber.join(Duration.of(timeout, unit.toChronoUnit()));
     }
 
     @Override
@@ -440,7 +420,6 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
     public final boolean cancel(boolean mayInterruptIfRunning) {
         if (fiber == null) {
             final CancellationException ce = new CancellationException();
-            setException(ce);
             runFiberExceptionThroughHandlers(ce);
             return interrupted = true;
         }
@@ -454,7 +433,7 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     @Override
     public final boolean isCancelled() {
-        return future().isCancelled();
+        return fiber.isCancelled();
     }
 
     /**
@@ -500,7 +479,6 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
      *
      * @param eh the object to use as the default uncaught exception handler.
      *           If {@code null} then there is no default handler.
-     *
      * @see #setUncaughtExceptionHandler
      * @see #getUncaughtExceptionHandler
      */

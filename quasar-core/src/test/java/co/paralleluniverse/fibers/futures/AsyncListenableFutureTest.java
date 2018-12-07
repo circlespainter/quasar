@@ -23,10 +23,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -54,7 +51,7 @@ public class AsyncListenableFutureTest {
     }
 
     @Test
-    public void simpleTest1() throws Exception {
+    public void simpleTest1() {
         final SettableFuture<String> fut = SettableFuture.create();
 
         final co.paralleluniverse.fibers.Fiber<String> fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, (Callable<String>) fut::get).start();
@@ -71,7 +68,7 @@ public class AsyncListenableFutureTest {
     }
 
     @Test
-    public void testException() throws Exception {
+    public void testException() {
         final SettableFuture<String> fut = SettableFuture.create();
 
         final co.paralleluniverse.fibers.Fiber<String> fiber = new co.paralleluniverse.fibers.Fiber<>(scheduler, () -> {
@@ -90,13 +87,13 @@ public class AsyncListenableFutureTest {
         try {
             fiber.get();
             fail();
-        } catch (final ExecutionException e) {
-            assertThat(e.getCause().getMessage(), equalTo("haha!"));
+        } catch (final CompletionException e) {
+            assertThat(e.getCause().getCause().getMessage(), equalTo("haha!"));
         }
     }
 
     @Test
-    public void testException2() throws Exception {
+    public void testException2() {
         final ListenableFuture<String> fut = new AbstractFuture<>() {
             {
                 setException(new RuntimeException("haha!"));
@@ -112,8 +109,8 @@ public class AsyncListenableFutureTest {
         try {
             fiber.get();
             fail();
-        } catch (final ExecutionException e) {
-            assertThat(e.getCause().getMessage(), equalTo("haha!"));
+        } catch (final CompletionException e) {
+            assertThat(e.getCause().getCause().getMessage(), equalTo("haha!"));
         }
     }
 }

@@ -39,7 +39,7 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
      */
     @Suppress("unused")
     // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
-    inline protected fun receive(proc: (Any?) -> Any?) {
+    protected inline fun receive(proc: (Any?) -> Any?) {
         receive(-1, null, proc)
     }
 
@@ -54,7 +54,7 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
      * Higher-order selective receive
      */
     // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any?) -> Any?) {
+    protected inline fun receive(timeout: Long, unit: TimeUnit?, proc: (Any?) -> Any?) {
         assert(JActor.currentActor<Any?, Any?>() == null || JActor.currentActor<Any?, Any?>() == this)
 
         val mailbox = mailbox()
