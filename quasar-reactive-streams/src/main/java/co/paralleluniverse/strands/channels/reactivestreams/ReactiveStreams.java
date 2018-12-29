@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.common.util.Action2;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
@@ -146,7 +148,7 @@ public class ReactiveStreams {
     }
 
     /**
-     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, SuspendableAction2) transformer} into a {@link Publisher}.
+     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, Action2) transformer} into a {@link Publisher}.
      * The transformer will run in its own fiber.
      *
      * @param <T>         the type of elements flowing into the transformer
@@ -154,23 +156,21 @@ public class ReactiveStreams {
      * @param ff          the {@link FiberFactory} to create the internal fiber(s); if {@code null} then a default factory is used.
      * @param bufferSize  the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy      the {@link OverflowPolicy} of the internal channel.
-     * @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
-     *                    whenever the channel's buffer is depleted, or after consuming each element.
      * @param transformer a function that reads from it's input channel and writes to its output channel
      * @return a {@code Processor} running the given transformer.
      */
-    public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+    public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
         final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
         final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
         return new ChannelProcessor<T, R>(ff, false, in, out, transformer);
     }
 
     /**
-     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, SuspendableAction2) transformer} into a {@link Publisher}.
+     * Turns a {@link Channels#fiberTransform(ReceivePort, SendPort, Action2) transformer} into a {@link Publisher}.
      * The transformer will run in its own fiber.
      * <p>
      * Same as calling 
-     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, SuspendableAction2) toProcessor(null, bufferSize, policy, transformer)
+     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, Action2) toProcessor(null, bufferSize, policy, transformer)
      *
      * @param <T>         the type of elements flowing into the transformer
      * @param <R>         the type of elements flowing out of the transformer
@@ -182,7 +182,7 @@ public class ReactiveStreams {
      * @param transformer a function that reads from it's input channel and writes to its output channel
      * @return a {@code Processor} running the given transformer.
      */
-    public static <T, R> Processor<T, R> toProcessor(int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+    public static <T, R> Processor<T, R> toProcessor(int bufferSize, OverflowPolicy policy, Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
         return toProcessor(null, bufferSize, policy, transformer);
     }
 }

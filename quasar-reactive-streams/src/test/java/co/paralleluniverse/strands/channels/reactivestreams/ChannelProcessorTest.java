@@ -12,6 +12,8 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.common.util.Action2;
+import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import co.paralleluniverse.strands.channels.SendPort;
@@ -52,16 +54,12 @@ public class ChannelProcessorTest extends IdentityProcessorVerification<Integer>
 
     @Override
     public Processor<Integer, Integer> createIdentityProcessor(int bufferSize) {
-        return ReactiveStreams.toProcessor(null, bufferSize, overflowPolicy, new SuspendableAction2<ReceivePort<Integer>, SendPort<Integer>>() {
-
-            @Override
-            public void call(ReceivePort<Integer> in, SendPort<Integer> out) throws SuspendExecution, InterruptedException {
-                for (Integer element; ((element = in.receive()) != null);) {
-                    out.send(element);
-                    Fiber.sleep(10); // just for fun
-                }
-                out.close();
+        return ReactiveStreams.toProcessor(null, bufferSize, overflowPolicy, (Action2<ReceivePort<Integer>, SendPort<Integer>>) (in, out) -> {
+            for (Integer element; ((element = in.receive()) != null);) {
+                out.send(element);
+                Fiber.sleep(10); // just for fun
             }
+            out.close();
         });
     }
 

@@ -43,13 +43,12 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
     private final SimpleConditionSynchronizer processorNotifyCondition = new SimpleConditionSynchronizer(this);
 
     @Override
-    public long waitFor(long sequence, Sequence cursorSequence, Sequence dependentSequence, com.lmax.disruptor.SequenceBarrier barrier)
-            throws AlertException, InterruptedException {
+    public long waitFor(long sequence, Sequence cursorSequence, Sequence dependentSequence, com.lmax.disruptor.SequenceBarrier barrier) {
         throw new UnsupportedOperationException();
     }
 
     public long waitFor1(long sequence, Sequence cursorSequence, Sequence dependentSequence, com.lmax.disruptor.SequenceBarrier barrier)
-            throws AlertException, InterruptedException, SuspendExecution {
+            throws AlertException, InterruptedException {
         long availableSequence;
         if ((availableSequence = cursorSequence.get()) < sequence) {
             Object token = processorNotifyCondition.register();
@@ -71,7 +70,7 @@ public final class StrandBlockingWaitStrategy implements WaitStrategy {
     }
 
     public long waitFor1(long sequence, Sequence cursorSequence, Sequence dependentSequence, com.lmax.disruptor.SequenceBarrier barrier, long timeout, TimeUnit unit)
-            throws AlertException, InterruptedException, SuspendExecution, TimeoutException {
+            throws AlertException, InterruptedException, TimeoutException {
         long availableSequence;
         if ((availableSequence = cursorSequence.get()) < sequence) {
             long left = unit.toNanos(timeout);

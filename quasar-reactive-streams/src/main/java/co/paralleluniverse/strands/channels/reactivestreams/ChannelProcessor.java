@@ -13,10 +13,15 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.common.util.Action2;
+import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.ProducerException;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import co.paralleluniverse.strands.channels.SendPort;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
@@ -31,13 +36,13 @@ class ChannelProcessor<T, R> implements Processor<T, R> {
     private final ChannelPublisher<R> publisher;
 
     private final FiberFactory ff;
-    private final SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer;
+    private final Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer;
     private final ReceivePort<T> in;
     private final SendPort<R> out;
     private final AtomicInteger connectedEnds = new AtomicInteger();
     private volatile Subscription subscription;
 
-    public ChannelProcessor(FiberFactory ff, boolean batch, Channel<T> in, Channel<R> out, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+    public ChannelProcessor(FiberFactory ff, boolean batch, Channel<T> in, Channel<R> out, Action2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
         this.ff = ff != null ? ff : defaultFiberFactory;
         this.transformer = transformer;
         this.subscriber = new ChannelSubscriber<T>(in, batch) {
@@ -80,20 +85,17 @@ class ChannelProcessor<T, R> implements Processor<T, R> {
     }
 
     private void start() {
-        ff.newFiber(new SuspendableCallable<Void>() {
-            @Override
-            public Void run() throws SuspendExecution, InterruptedException {
-                try {
-                    ((SuspendableAction2) transformer).call(in, out);
-                    out.close();
-                } catch (ProducerException e) {
-                    out.close(e.getCause());
-                } catch (Throwable t) {
-                    out.close(t);
-                }
-                in.close();
-                return null;
+        ff.newFiber((Callable<Void>) () -> {
+            try {
+                ((Action2) transformer).call(in, out);
+                out.close();
+            } catch (ProducerException e) {
+                out.close(e.getCause());
+            } catch (Throwable t) {
+                out.close(t);
             }
+            in.close();
+            return null;
         }).start();
     }
 
@@ -131,12 +133,7 @@ class ChannelProcessor<T, R> implements Processor<T, R> {
         subscriber.onComplete();
     }
 
-    private static final FiberFactory defaultFiberFactory = new FiberFactory() {
-        @Override
-        public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
-            return new Fiber(target);
-        }
-    };
+    private static final FiberFactory defaultFiberFactory = Fiber::new;
 
     private static class FailedSubscriptionException extends RuntimeException {
     }

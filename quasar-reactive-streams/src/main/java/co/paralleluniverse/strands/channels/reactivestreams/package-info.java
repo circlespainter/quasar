@@ -13,7 +13,7 @@
 /**
  * <h2>Reactive Streams</h2>
  *
- * The {@link ReactiveStreams} class converts streams to channels and vice versa, for interoperation with other libraries 
+ * The {@link co.paralleluniverse.strands.channels.reactivestreams.ReactiveStreams} class converts streams to channels and vice versa, for interoperation with other libraries
  * conforming to the <a href="https://github.com/reactive-streams/reactive-streams-jvm/blob/v1.0.0/README.md">reactive streams standard</a>.
  */
 package co.paralleluniverse.strands.channels.reactivestreams;

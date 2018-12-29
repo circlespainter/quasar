@@ -69,7 +69,7 @@ final class ProcessingSequenceBarrier implements SequenceBarrier {
 
     @Override
     public long waitFor1(long sequence)
-            throws AlertException, InterruptedException, SuspendExecution {
+            throws AlertException, InterruptedException {
         checkAlert();
 
         long availableSequence = waitStrategy.waitFor1(sequence, cursorSequence, dependentSequence, this);
@@ -82,7 +82,7 @@ final class ProcessingSequenceBarrier implements SequenceBarrier {
 
     @Override
     public long waitFor1(long sequence, long timeout, TimeUnit unit)
-            throws AlertException, InterruptedException, SuspendExecution, TimeoutException {
+            throws AlertException, InterruptedException, TimeoutException {
         checkAlert();
 
         long availableSequence = waitStrategy.waitFor1(sequence, cursorSequence, dependentSequence, this, timeout, unit);

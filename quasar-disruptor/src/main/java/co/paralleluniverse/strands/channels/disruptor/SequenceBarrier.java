@@ -13,6 +13,6 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public interface SequenceBarrier extends com.lmax.disruptor.SequenceBarrier {
-    long waitFor1(long sequence) throws AlertException, InterruptedException, SuspendExecution;
-    long waitFor1(long sequence, long timeout, TimeUnit unit) throws AlertException, InterruptedException, TimeoutException, SuspendExecution;
+    long waitFor1(long sequence) throws AlertException, InterruptedException;
+    long waitFor1(long sequence, long timeout, TimeUnit unit) throws AlertException, InterruptedException, TimeoutException;
 }

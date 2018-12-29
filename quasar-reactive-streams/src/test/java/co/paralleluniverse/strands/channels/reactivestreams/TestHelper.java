@@ -12,18 +12,22 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.SendPort;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import java.util.Calendar;
+import java.util.concurrent.Callable;
+
 public class TestHelper {
     public static <T extends SendPort<Integer>> T startPublisherFiber(final T s, final long delay, final long elements) {
-        new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                if (delay > 0)
+        new co.paralleluniverse.fibers.Fiber<Void>(() -> {
+            try {
+                if (delay > 0) {
                     Strand.sleep(delay);
+                }
 
                 // we only emit up to 100K elements or 100ms, the later of the two (the TCK asks for 2^31-1)
                 long start = elements > 100_000 ? System.nanoTime() : 0L;
@@ -37,38 +41,35 @@ public class TestHelper {
                     }
                 }
                 s.close();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }).start();
         return s;
     }
 
     public static <T extends SendPort<Integer>> T startFailedPublisherFiber(final T s, final long delay) {
-        new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                if (delay > 0)
-                    Strand.sleep(delay);
-                s.close(new Exception("failure"));
-            }
+        new co.paralleluniverse.fibers.Fiber<Void>(() -> {
+            if (delay > 0)
+                Strand.sleep(delay);
+            s.close(new Exception("failure"));
+            return null;
         }).start();
         return s;
     }
     
     public static <T> Publisher<T> createDummyFailedPublisher() {
-        return new Publisher<T>() {
-            @Override
-            public void subscribe(Subscriber<? super T> s) {
-                s.onSubscribe(new Subscription() {
-                    @Override
-                    public void request(long n) {
-                    }
+        return s -> {
+            s.onSubscribe(new Subscription() {
+                @Override
+                public void request(long n) {
+                }
 
-                    @Override
-                    public void cancel() {
-                    }
-                });
-                s.onError(new RuntimeException("Can't subscribe subscriber: " + s + ", because of reasons."));
-            }
+                @Override
+                public void cancel() {
+                }
+            });
+            s.onError(new RuntimeException("Can't subscribe subscriber: " + s + ", because of reasons."));
         };
     }
 }

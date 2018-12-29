@@ -13,7 +13,10 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.strands.channels.ReceivePort;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -59,8 +62,8 @@ class ChannelPublisher<T> implements Publisher<T> {
 
     private static final FiberFactory defaultFiberFactory = new FiberFactory() {
         @Override
-        public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
-            return new Fiber(target);
+        public <T> co.paralleluniverse.fibers.Fiber<T> newFiber(Callable<T> target) {
+            return new co.paralleluniverse.fibers.Fiber(target);
         }
     };
 }

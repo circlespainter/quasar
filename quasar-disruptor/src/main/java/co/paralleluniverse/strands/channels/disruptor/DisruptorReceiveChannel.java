@@ -49,7 +49,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message receive() throws SuspendExecution, InterruptedException {
+    public Message receive() throws InterruptedException {
         if (closed)
             return null;
         long nextSequence = sequence.get() + 1L;
@@ -64,7 +64,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         if (unit == null)
             return receive();
         if (timeout <= 0)
@@ -95,7 +95,7 @@ public class DisruptorReceiveChannel<Message> implements ReceivePort<Message> {
     }
 
     @Override
-    public Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 

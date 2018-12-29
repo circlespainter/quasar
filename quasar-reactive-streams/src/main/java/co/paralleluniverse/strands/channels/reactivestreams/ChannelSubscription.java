@@ -17,16 +17,18 @@ import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.channels.ProducerException;
 import co.paralleluniverse.strands.channels.ReceivePort;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
  * @author pron
  */
-class ChannelSubscription<T> implements Subscription, SuspendableCallable<Void> {
+class ChannelSubscription<T> implements Subscription, Callable<Void> {
     private final ReceivePort<T> ch;
     private final Subscriber<? super T> s;
     private final Condition sync = new OwnedSynchronizer(this);
@@ -75,7 +77,7 @@ class ChannelSubscription<T> implements Subscription, SuspendableCallable<Void> 
         return cancelled;
     }
 
-    private boolean checkClosed() throws SuspendExecution, InterruptedException {
+    private boolean checkClosed() throws InterruptedException {
         if (ch.isClosed()) {
             ch.receive(); // throw exception if any
             return true;
@@ -89,7 +91,7 @@ class ChannelSubscription<T> implements Subscription, SuspendableCallable<Void> 
     }
 
     @Override
-    public Void run() throws SuspendExecution, InterruptedException {
+    public Void call() {
         // assumes all requests are done on this fiber
         try {
             s.onSubscribe(this);
@@ -117,7 +119,7 @@ class ChannelSubscription<T> implements Subscription, SuspendableCallable<Void> 
         return null;
     }
 
-    private long getRequested(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    private long getRequested(long timeout, TimeUnit unit) throws InterruptedException {
         long r = requested.get();
         if (r < 0)
             return r;

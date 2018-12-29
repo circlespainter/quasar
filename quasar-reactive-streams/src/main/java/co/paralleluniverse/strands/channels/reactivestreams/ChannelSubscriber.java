@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
@@ -70,8 +71,6 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
                 ch.send(element);
         } catch (InterruptedException e) {
             Strand.interrupted();
-        } catch (SuspendExecution e) {
-            throw new AssertionError(e);
         }
     }
 
@@ -108,14 +107,14 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
     }
 
     @Override
-    public T receive() throws SuspendExecution, InterruptedException {
+    public T receive() throws InterruptedException {
         T m = ch.receive();
         consumed();
         return m;
     }
 
     @Override
-    public T receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public T receive(long timeout, TimeUnit unit) throws InterruptedException {
         T m = ch.receive(timeout, unit);
         if (m != null)
             consumed();
@@ -123,7 +122,7 @@ class ChannelSubscriber<T> implements Subscriber<T>, ReceivePort<T> {
     }
 
     @Override
-    public T receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public T receive(Timeout timeout) throws InterruptedException {
         T m = ch.receive(timeout);
         if (m != null)
             consumed();

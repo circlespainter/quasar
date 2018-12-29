@@ -12,11 +12,14 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
+import co.paralleluniverse.common.util.Action2;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import co.paralleluniverse.strands.channels.SendPort;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.reactivestreams.Processor;
@@ -57,35 +60,31 @@ public class TwoSidedTest {
     public void twoSidedTest() throws Exception {
         // Publisher
         final Channel<Integer> publisherChannel = Channels.newChannel(random() ? 0 : 5, OverflowPolicy.BLOCK);
-        final Strand publisherStrand = new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (long i = 0; i < ELEMENTS; i++)
-                    publisherChannel.send((int) (i % 1000));
+        final co.paralleluniverse.strands.Strand publisherStrand = new co.paralleluniverse.fibers.Fiber<>((Callable<Void>) () -> {
+            for (long i = 0; i < ELEMENTS; i++)
+                publisherChannel.send((int) (i % 1000));
 
-                publisherChannel.close();
-            }
+            publisherChannel.close();
+            return null;
         }).start();
         final Publisher publisher = ReactiveStreams.toPublisher(publisherChannel);
 
         // Subscriber
         final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, publisher);
-        final Strand subscriberStrand = new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                long count = 0;
-                for (;;) {
-                    Integer x = subscriberChannel.receive();
-                    if (x == null)
-                        break;
+        final co.paralleluniverse.strands.Strand subscriberStrand = new co.paralleluniverse.fibers.Fiber<Void>(() -> {
+            long count = 0;
+            for (;;) {
+                Integer x = subscriberChannel.receive();
+                if (x == null)
+                    break;
 
-                    assertEquals(count % 1000, x.longValue());
-                    count++;
-                }
-                subscriberChannel.close();
-
-                assertEquals(ELEMENTS, count);
+                assertEquals(count % 1000, x.longValue());
+                count++;
             }
+            subscriberChannel.close();
+
+            assertEquals(ELEMENTS, count);
+            return null;
         }).start();
 
         subscriberStrand.join(5, TimeUnit.SECONDS);
@@ -96,56 +95,49 @@ public class TwoSidedTest {
     public void twoSidedTestWithProcessor() throws Exception {
         // Publisher
         final Channel<Integer> publisherChannel = Channels.newChannel(random() ? 0 : 5, OverflowPolicy.BLOCK);
-        final Strand publisherStrand = new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                for (long i = 0; i < ELEMENTS; i++)
-                    publisherChannel.send((int) (i % 1000));
+        final co.paralleluniverse.strands.Strand publisherStrand = new co.paralleluniverse.fibers.Fiber<Void>(() -> {
+            for (long i = 0; i < ELEMENTS; i++)
+                publisherChannel.send((int) (i % 1000));
 
-                publisherChannel.close();
-            }
+            publisherChannel.close();
+            return null;
         }).start();
 
         final Publisher<Integer> publisher = ReactiveStreams.toPublisher(publisherChannel);
 
         // Processor
-        final Processor<Integer, Integer> processor = ReactiveStreams.toProcessor(5, OverflowPolicy.BLOCK, new SuspendableAction2<ReceivePort<Integer>, SendPort<Integer>>() {
-            @Override
-            public void call(ReceivePort<Integer> in, SendPort<Integer> out) throws SuspendExecution, InterruptedException {
-                long count = 0;
-                for (Integer element; ((element = in.receive()) != null); count++) {
-                    out.send(element * 10);
-                    out.send(element * 100);
-                    // Fiber.sleep(1); // just for fun
-                    assertTrue(count < ELEMENTS);
-                }
-                assertEquals(ELEMENTS, count);
-                out.close();
+        final Processor<Integer, Integer> processor = ReactiveStreams.toProcessor(5, OverflowPolicy.BLOCK, (Action2<ReceivePort<Integer>, SendPort<Integer>>) (in, out) -> {
+            long count = 0;
+            for (Integer element; ((element = in.receive()) != null); count++) {
+                out.send(element * 10);
+                out.send(element * 100);
+                // Fiber.sleep(1); // just for fun
+                assertTrue(count < ELEMENTS);
             }
+            assertEquals(ELEMENTS, count);
+            out.close();
         });
         publisher.subscribe(processor);
 
         // Subscriber
         final ReceivePort<Integer> subscriberChannel = ReactiveStreams.subscribe(buffer, overflowPolicy, processor);
-        final Strand subscriberStrand = new Fiber<Void>(new SuspendableRunnable() {
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                long count = 0;
-                for (;;) {
-                    Integer x = subscriberChannel.receive();
-                    if (x == null)
-                        break;
+        final co.paralleluniverse.strands.Strand subscriberStrand = new co.paralleluniverse.fibers.Fiber<>((Callable<Void>) () -> {
+            long count = 0;
+            for (; ; ) {
+                Integer x = subscriberChannel.receive();
+                if (x == null)
+                    break;
 
-                    assertTrue(x % 10 == 0);
-                    if (count % 2 != 0)
-                        assertTrue(x % 100 == 0);
+                assertTrue(x % 10 == 0);
+                if (count % 2 != 0)
+                    assertTrue(x % 100 == 0);
 
-                    count++;
-                }
-                subscriberChannel.close();
-
-                assertEquals(ELEMENTS * 2, count);
+                count++;
             }
+            subscriberChannel.close();
+
+            assertEquals(ELEMENTS * 2, count);
+            return null;
         }).start();
 
         subscriberStrand.join(5, TimeUnit.SECONDS);
