@@ -1,6 +1,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.strands.channels.Channels;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -22,16 +23,16 @@ public class RingBenchmark {
     }
 
     private static <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {
-        new Fiber(actor).start();
+        new co.paralleluniverse.fibers.Fiber(actor).start();
         return actor;
     }
 
     void run() throws ExecutionException, InterruptedException {
         final long start = System.nanoTime();
 
-        Actor<Integer, Integer> manager = spawnActor(new BasicActor<Integer, Integer>(mailboxConfig) {
+        Actor<Integer, Integer> manager = spawnActor(new BasicActor<>(mailboxConfig) {
             @Override
-            protected Integer doRun() throws InterruptedException, SuspendExecution {
+            protected Integer doRun() throws InterruptedException {
                 ActorRef<Integer> a = this.ref();
                 for (int i = 0; i < N - 1; i++)
                     a = createRelayActor(a);
@@ -56,8 +57,8 @@ public class RingBenchmark {
     private ActorRef<Integer> createRelayActor(final ActorRef<Integer> prev) {
         return spawnActor(new BasicActor<Integer, Void>(mailboxConfig) {
             @Override
-            protected Void doRun() throws InterruptedException, SuspendExecution {
-                for (;;) {
+            protected Void doRun() throws InterruptedException {
+                for (; ; ) {
                     Integer m = receive();
                     prev.send(m + 1);
                 }

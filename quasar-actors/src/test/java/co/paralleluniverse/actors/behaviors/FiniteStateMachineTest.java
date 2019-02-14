@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -17,25 +17,24 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
-
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.After;
-import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 
-import static org.mockito.Mockito.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
- *
  * @author pron
  */
 public class FiniteStateMachineTest {
@@ -49,19 +48,14 @@ public class FiniteStateMachineTest {
         ActorRegistry.clear();
     }
 
-    static final int mailboxSize = 10;
-
     public FiniteStateMachineTest() {
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(actor);
-        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Strand s, Throwable e) {
-                e.printStackTrace();
-                throw Exceptions.rethrow(e);
-            }
+        co.paralleluniverse.fibers.Fiber fiber = new co.paralleluniverse.fibers.Fiber(actor);
+        fiber.setUncaughtExceptionHandler((s, e) -> {
+            e.printStackTrace();
+            throw Exceptions.rethrow(e);
         });
         fiber.start();
         return actor;
@@ -86,40 +80,26 @@ public class FiniteStateMachineTest {
 
         ActorRef<Object> a = new FiniteStateMachineActor() {
             @Override
-            protected SuspendableCallable<SuspendableCallable> initialState() {
-                return new SuspendableCallable<SuspendableCallable>() {
-                    public SuspendableCallable run() throws SuspendExecution, InterruptedException {
-                        return state1();
-                    }
-                };
+            protected Callable<Callable> initialState() {
+                return () -> state1();
             }
 
-            private SuspendableCallable<SuspendableCallable> state1() throws SuspendExecution, InterruptedException {
-                return receive(new MessageProcessor<Object, SuspendableCallable<SuspendableCallable>>() {
-                    @Override
-                    public SuspendableCallable<SuspendableCallable> process(Object m) throws SuspendExecution, InterruptedException {
-                        if ("a".equals(m))
-                            return new SuspendableCallable<SuspendableCallable>() {
-                                public SuspendableCallable run() throws SuspendExecution, InterruptedException {
-                                    return state2();
-                                }
-                            };
-                        return null;
-                    }
+            private Callable<Callable> state1() throws InterruptedException {
+                return receive(m -> {
+                    if ("a".equals(m))
+                        return () -> state2();
+                    return null;
                 });
 
             }
 
-            private SuspendableCallable<SuspendableCallable> state2() throws SuspendExecution, InterruptedException {
-                return receive(new MessageProcessor<Object, SuspendableCallable<SuspendableCallable>>() {
-                    @Override
-                    public SuspendableCallable<SuspendableCallable> process(Object m) throws SuspendExecution, InterruptedException {
-                        if ("b".equals(m)) {
-                            success.set(true);
-                            return TERMINATE;
-                        }
-                        return null;
+            private Callable<Callable> state2() throws InterruptedException {
+                return receive(m -> {
+                    if ("b".equals(m)) {
+                        success.set(true);
+                        return TERMINATE;
                     }
+                    return null;
                 });
             }
         }.spawn();
@@ -140,23 +120,15 @@ public class FiniteStateMachineTest {
 
         ActorRef<Object> a = new FiniteStateMachineActor() {
             @Override
-            protected SuspendableCallable<SuspendableCallable> initialState() {
-                return new SuspendableCallable<SuspendableCallable>() {
-                    public SuspendableCallable run() throws SuspendExecution, InterruptedException {
-                        return state1();
-                    }
-                };
+            protected Callable<Callable> initialState() {
+                return () -> state1();
             }
 
-            private SuspendableCallable<SuspendableCallable> state1() {
-                return new SuspendableCallable<SuspendableCallable>() {
-                    public SuspendableCallable run() throws SuspendExecution, InterruptedException {
-                        return state2();
-                    }
-                };
+            private Callable<Callable> state1() {
+                return () -> state2();
             }
 
-            private SuspendableCallable<SuspendableCallable> state2() {
+            private Callable<Callable> state2() {
                 throw myException;
             }
         }.spawn();

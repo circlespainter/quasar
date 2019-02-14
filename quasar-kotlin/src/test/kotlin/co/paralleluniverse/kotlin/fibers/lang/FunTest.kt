@@ -13,9 +13,10 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.DefaultFiberScheduler
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.Callable
 
 /**
  * @author circlespainter
@@ -23,111 +24,123 @@ import org.junit.Test
 
 fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     println("seq")
-    return (@Suspendable {f() ; g()})
+    return ({ f(); g() })
 }
 
-@Suspendable fun f() {
-    Fiber.sleep(10)
-    @Suspendable fun f1() {
-        Fiber.sleep(10)
+fun f() {
+    co.paralleluniverse.fibers.Fiber.sleep(10)
+    fun f1() {
+        co.paralleluniverse.fibers.Fiber.sleep(10)
     }
     f1()
 }
 
-@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) = Fiber.sleep(10)
+fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) = co.paralleluniverse.fibers.Fiber.sleep(10)
 
-@Suspendable fun fQuick() {
+fun fQuick() {
     println("quick pre-sleep")
-    Fiber.sleep(10)
+    co.paralleluniverse.fibers.Fiber.sleep(10)
     println("quick after-sleep")
 }
 
-@Suspendable fun fVarArg(vararg ls: Long) {
+fun fVarArg(vararg ls: Long) {
     for (l in ls)
-        Fiber.sleep(l)
+        co.paralleluniverse.fibers.Fiber.sleep(l)
 }
 
 class FunTest {
-    val scheduler = FiberForkJoinScheduler("test", 4, null, false)
+    val scheduler = DefaultFiberScheduler.getInstance()
 
-    @Test fun testSimpleFun() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testSimpleFun() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             f()
             true
         }).start().get())
     }
 
-    @Test fun testDefaultFunWithAllArgs() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testDefaultFunWithAllArgs() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             fDef(true)
             true
         }).start().get())
     }
 
-    @Test fun testDefaultFunWithoutSomeArgs() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testDefaultFunWithoutSomeArgs() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             fDef()
             true
         }).start().get())
     }
 
-    @Test fun testQuickFun() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testQuickFun() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             fQuick()
             true
         }).start().get())
     }
 
-    @Test fun testVarArgFun0() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testVarArgFun0() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             fVarArg()
             true
         }).start().get())
     }
 
-    @Test fun testVarArgFun1() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testVarArgFun1() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             fVarArg(10)
             true
         }).start().get())
     }
 
-    @Test fun testFunRefInvoke() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testFunRefInvoke() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             (::fQuick)()
             true
         }).start().get())
     }
 
-    @Test fun testFunRefArg() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+    @Test
+    fun testFunRefArg() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             seq(::fQuick, ::fQuick)()
             true
         }).start().get())
     }
 
-    @Test fun testFunLambda() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
-            (@Suspendable { _ : Int -> Fiber.sleep(10) })(1)
+    @Test
+    fun testFunLambda() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
+            ({ _: Int -> co.paralleluniverse.fibers.Fiber.sleep(10) })(1)
             true
         }).start().get())
     }
 
-    @Suspendable
+
     private fun callSusLambda(f: (Int) -> Unit, i: Int) =
-            Fiber(scheduler, SuspendableCallable (@Suspendable {
-                f(i)
-                true
-            })).start().get()
+        co.paralleluniverse.fibers.Fiber(scheduler, Callable {
+            f(i)
+            true
+        }).start().get()
 
-    @Test fun testFunLambda2() = assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
+    @Test
+    fun testFunLambda2() = assertTrue(callSusLambda({ co.paralleluniverse.fibers.Fiber.sleep(10) }, 1))
 
-    @Test fun testFunAnon() {
-        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
-            (@Suspendable fun(_ : Int) { Fiber.sleep(10) })(1)
+    @Test
+    fun testFunAnon() {
+        assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
+            (fun(_: Int) { co.paralleluniverse.fibers.Fiber.sleep(10) })(1)
             true
         }).start().get())
     }
 
-    @Test fun testFunAnon2() = assertTrue(callSusLambda(@Suspendable fun(_ : Int) { Fiber.sleep(10) }, 1))
+    @Test
+    fun testFunAnon2() = assertTrue(callSusLambda(fun(_: Int) { co.paralleluniverse.fibers.Fiber.sleep(10) }, 1))
 }

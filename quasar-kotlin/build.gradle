@@ -8,15 +8,17 @@ buildscript {
 }
 
 apply plugin: 'kotlin'
+apply plugin: 'org.javamodularity.moduleplugin'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+ext.moduleName = 'co.paralleluniverse.quasar.kotlin'
+
+sourceCompatibility = JavaVersion.VERSION_HIGHER
 
 dependencies {
-    provided project(path: ':quasar-core', configuration: "archives")
+    provided project(path: ':quasar-core', configuration: 'shadowedJar')
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"

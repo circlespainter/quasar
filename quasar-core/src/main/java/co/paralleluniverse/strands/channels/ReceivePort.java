@@ -29,6 +29,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      *
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}).
      * @throws InterruptedException
+     * @throws SuspendExecution
      */
     default Message receive() throws InterruptedException {
         return receive(-1, null);
@@ -41,6 +42,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      * @param unit    the time unit of the timeout.
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
      * @throws InterruptedException
+     * @throws SuspendExecution
      */
     Message receive(long timeout, TimeUnit unit) throws InterruptedException;
 
@@ -50,6 +52,7 @@ public interface ReceivePort<Message> extends Port<Message>, PortAutoCloseable {
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return a message, or {@code null} if the channel has been closed and no more messages await (see {@link #isClosed()}), or if the timeout has expired.
      * @throws InterruptedException
+     * @throws SuspendExecution
      */
     default Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);

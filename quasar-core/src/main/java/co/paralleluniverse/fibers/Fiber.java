@@ -29,16 +29,16 @@ import java.util.concurrent.locks.LockSupport;
 
 /**
  * A lightweight thread.
- * <p/>
+ * <p>
  * There are two ways to create a new fiber: either subclass the {@code Fiber} class and override the {@code run} method,
  * or pass the code to be executed in the fiber as the {@code target} parameter to the constructor. All in all, the Fiber API
- * resembles the {@link Thread} class in many ways.
- * <p/>
- * A fiber runs inside a ForkJoinPool.
- * <p/>
- * A Fiber can be serialized if it's not running and all involved classes and data types are also {@link Serializable}.
- * <p/>
- * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
+ * resembles the {@link Thread} class in many ways.</p>
+ * <p>
+ * A fiber runs inside a ForkJoinPool.</p>
+ * <p>
+ * A Fiber can be serialized if it's not running and all involved classes and data types are also {@link Serializable}.</p>
+ * <p>
+ * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).</p>
  *
  * @param <V> The type of the fiber's result value. Should be set to {@link Void} if no value is to be returned by the fiber.
  * @author pron

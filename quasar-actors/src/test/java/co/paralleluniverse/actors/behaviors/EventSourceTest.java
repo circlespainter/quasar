@@ -45,8 +45,6 @@ public final class EventSourceTest {
         ActorRegistry.clear();
     }
 
-    static final int mailboxSize = 10;
-
     public EventSourceTest() {
     }
 

@@ -13,73 +13,79 @@
  */
 package co.paralleluniverse.kotlin.fibers
 
-import co.paralleluniverse.kotlin.*
+import co.paralleluniverse.kotlin.Receive
+import co.paralleluniverse.kotlin.Send
+import co.paralleluniverse.kotlin.fiber
+import co.paralleluniverse.kotlin.select
+import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.channels.Channels
-
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 import java.util.concurrent.TimeUnit
 
 /**
  * @author circlespainter
  */
 class FiberKotlinTest {
-  @Test fun testFiber() {
-    assertTrue (
-      fiber {
-        println("Hi there")
-        dumpStack()
-        Strand.sleep(10)
-        println("Hi there later")
-        1
-      }.get() == 1
-    )
-  }
+    @Test
+    fun testFiber() {
+        assertTrue(
+            fiber {
+                println("Hi there")
+                dumpStack()
+                Strand.sleep(10)
+                println("Hi there later")
+                1
+            }.get() == 1
+        )
+    }
 
-  @Test fun testSelect() {
-    val ch1 = Channels.newChannel<Int>(1)
-    val ch2 = Channels.newChannel<Double>(1)
+    @Test
+    fun testSelect() {
+        val ch1 = Channels.newChannel<Int>(1)
+        val ch2 = Channels.newChannel<Double>(1)
 
-    assertTrue (
-      fiber {
-        select(Receive(ch1), Send(ch2, 2.0)) {
-          dumpStack { it }
-        }
-      }.get() is Send<*>)
+        assertTrue(
+            fiber {
+                select(Receive(ch1), Send(ch2, 2.0)) {
+                    dumpStack { it }
+                }
+            }.get() is Send<*>
+        )
 
-    ch1.send(1)
+        ch1.send(1)
 
-    assertTrue (
-      fiber {
-        select(Receive(ch1), Send(ch2, 2.0)) {
-          when (it) {
-            is Receive<*> -> dumpStack { it.msg }
-            is Send<*> -> dumpStack { 0 }
-            else -> dumpStack { -1 }
-          }
-        }
-      }.get() == 1
-    )
+        assertTrue(
+            fiber {
+                select(Receive(ch1), Send(ch2, 2.0)) {
+                    when (it) {
+                        is Receive<*> -> dumpStack { it.msg }
+                        is Send<*> -> dumpStack { 0 }
+                        else -> dumpStack { -1 }
+                    }
+                }
+            }.get() == 1
+        )
 
-    assertTrue (
-      fiber {
-        select(10, TimeUnit.MILLISECONDS, Receive(ch1), Send(ch2, 2.0)) {
-          when (it) {
-            is Receive<*> -> dumpStack { it.msg }
-            is Send<*> -> dumpStack { 0 }
-            else -> dumpStack { -1 }
-          }
-        }
-      }.get() == -1
-    )
-  }
+        assertTrue(
+            fiber {
+                select(10, TimeUnit.MILLISECONDS, Receive(ch1), Send(ch2, 2.0)) {
+                    when (it) {
+                        is Receive<*> -> dumpStack { it.msg }
+                        is Send<*> -> dumpStack { 0 }
+                        else -> dumpStack { -1 }
+                    }
+                }
+            }.get() == -1
+        )
+    }
 
-  private fun <T> dumpStack(f : () -> T) : T {
-    Throwable().printStackTrace()
-    return f()
-  }
+    private fun <T> dumpStack(f: () -> T): T {
+        Throwable().printStackTrace()
+        return f()
+    }
 
-  private fun dumpStack() : Unit {
-    Throwable().printStackTrace()
-  }
+    private fun dumpStack() {
+        Throwable().printStackTrace()
+    }
 }

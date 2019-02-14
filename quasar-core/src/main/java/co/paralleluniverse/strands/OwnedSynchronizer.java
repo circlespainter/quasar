@@ -1,23 +1,22 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
-import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
- *
  * @author pron
  */
 public class OwnedSynchronizer extends ConditionSynchronizer implements Condition {
@@ -65,18 +64,19 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
             co.paralleluniverse.strands.Strand.unpark(s);
         }
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long waiterOffset;
+
+    private static final VarHandle WAITER;
 
     static {
         try {
-            waiterOffset = UNSAFE.objectFieldOffset(OwnedSynchronizer.class.getDeclaredField("waiter"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            WAITER = l.findVarHandle(OwnedSynchronizer.class, "waiter", Strand.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casWaiter(Strand expected, Strand update) {
-        return UNSAFE.compareAndSwapObject(this, waiterOffset, expected, update);
+        return WAITER.compareAndSet(this, expected, update);
     }
 }

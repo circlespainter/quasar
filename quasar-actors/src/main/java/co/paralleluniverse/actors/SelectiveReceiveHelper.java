@@ -47,9 +47,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     /**
      * Performs a selective receive. This method blocks until a message that is {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is available in the mailbox, and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>  The type of the returned value
      * @param proc performs the selection.
@@ -69,9 +69,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>     The type of the returned value
      * @param timeout the duration to wait for a matching message to arrive.
@@ -173,9 +173,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
@@ -191,14 +191,13 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * Tries to perform a selective receive. If a message {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is immediately available in the mailbox, returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>  The type of the returned value
      * @param proc performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if no message was slected.
-     * @throws InterruptedException
      */
     public final <T> T tryReceive(MessageProcessor<? super Message, T> proc) {
         try {
@@ -230,9 +229,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <M>     The type of the returned value
      * @param timeout the duration to wait for a matching message to arrive.
@@ -248,9 +247,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <M>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
@@ -265,9 +264,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     /**
      * Performs a selective receive based on type. This method blocks until a message of the given type is available in the mailbox,
      * and returns it.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <M>  The type of the returned value
      * @param type the type of the messages to select
@@ -286,9 +285,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * Tries to performs a selective receive based on type. If a message of the given type is immediately found in the mailbox, it is returned.
      * Otherwise this method returns {@code null}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <M>  The type of the returned value
      * @param type the type of the messages to select

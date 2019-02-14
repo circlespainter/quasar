@@ -13,10 +13,11 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.DefaultFiberScheduler
 import co.paralleluniverse.strands.channels.Channels
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 
 /**
@@ -24,21 +25,21 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 class ControlFlowTest {
-    private val scheduler = FiberForkJoinScheduler("test", 4, null, false)
+    private val scheduler = DefaultFiberScheduler.getInstance()
 
     @Test
     fun testForAndWhile() {
         val ch = Channels.newIntChannel(0)
         val vals = listOf(0, 1)
-        val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberSend = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             for (v in vals)
                 ch.send(v)
             ch.close()
         }).start()
-        val fiberReceive = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberReceive = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             var l = listOf<Int>()
             var i = ch.receive()
-            while(i != null) {
+            while (i != null) {
                 l = l.plus(i)
                 i = ch.receive()
             }
@@ -52,15 +53,15 @@ class ControlFlowTest {
     fun testWhen() {
         val ch = Channels.newIntChannel(0)
         val vals = listOf(1, 101)
-        val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberSend = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             for (v in vals)
                 ch.send(v)
             ch.close()
         }).start()
-        val fiberReceive = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberReceive = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             var l = listOf<Boolean>()
             var i = ch.receive()
-            while(i != null) {
+            while (i != null) {
                 when (i) {
                     in 1..100 -> {
                         l = l.plus(true)
@@ -82,22 +83,21 @@ class ControlFlowTest {
     fun testHOFun() {
         val ch = Channels.newIntChannel(0)
         val vals = listOf(0, 1)
-        val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberSend = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             for (v in vals)
                 ch.send(v)
             ch.close()
         }).start()
-        val fiberReceive = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiberReceive = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             var l = listOf<Int>()
             var i = ch.receive()
-            while(i != null) {
+            while (i != null) {
                 l = l.plus(i)
                 i = ch.receive()
             }
-            @Suspendable fun f() {
-                l.forEach {
-                    x ->
-                    Fiber.park(10, TimeUnit.MILLISECONDS)
+            fun f() {
+                l.forEach { x ->
+                    co.paralleluniverse.fibers.Fiber.park(10, TimeUnit.MILLISECONDS)
                     if (x % 2 != 0)
                         return@f
                 }

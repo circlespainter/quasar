@@ -30,7 +30,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      *
-     * @param message
+     * @param message the message
      * @throws InterruptedException
      */
     default void send(Message message) throws InterruptedException {
@@ -44,7 +44,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      *
-     * @param message
+     * @param message the message
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
@@ -58,7 +58,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      *
-     * @param message
+     * @param message the message
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
      */
@@ -69,7 +69,7 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
     /**
      * Sends a message to the channel if the channel has room available. This method never blocks.
      *
-     * @param message
+     * @param message the message
      * @return {@code true} if the message has been sent; {@code false} otherwise.
      */
     default boolean trySend(Message message) {
@@ -85,6 +85,8 @@ public interface SendPort<Message> extends Port<Message>, PortAutoCloseable {
      * The exception will be thrown when the consumer calls {@link ReceivePort}'s {@code receive} or {@code tryReceive},
      * wrapped by a {@link ProducerException}.
      * Messages already sent to the channel prior to calling this method will still be received.
+     *
+     * @param t the exception causing the close
      */
     default void close(Throwable t) {
     }

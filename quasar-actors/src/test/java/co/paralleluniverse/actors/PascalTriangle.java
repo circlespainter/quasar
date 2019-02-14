@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -16,17 +16,18 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.dataflow.Val;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
-import static org.junit.Assert.*;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+
 /**
- *
  * @author eitan
  */
 public class PascalTriangle {
@@ -34,7 +35,7 @@ public class PascalTriangle {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-    
+
     final MailboxConfig mailboxConfig = new MailboxConfig(4, Channels.OverflowPolicy.THROW);
 
     public PascalTriangle() {
@@ -68,7 +69,7 @@ public class PascalTriangle {
     public void testPascalSum() throws Exception {
         int maxLevel = 20; //800
         Val<BigInteger> res = new Val<>();
-        new Fiber<Void>(new PascalNode(res, 1, BigInteger.ONE, true, null, maxLevel)).start();
+        new co.paralleluniverse.fibers.Fiber<>(new PascalNode(res, 1, BigInteger.ONE, true, null, maxLevel)).start();
         assertEquals(BigInteger.valueOf(2).pow(maxLevel - 1), res.get(10, TimeUnit.SECONDS));
     }
 
@@ -116,7 +117,7 @@ public class PascalTriangle {
         }
 
         @Override
-        protected Void doRun() throws InterruptedException, SuspendExecution {
+        protected Void doRun() throws InterruptedException {
             if (level == maxLevel) {
                 result.set(val);
                 return null;

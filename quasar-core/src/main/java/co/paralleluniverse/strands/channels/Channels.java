@@ -85,8 +85,8 @@ public final class Channels {
 
     /**
      * Creates a new channel with the given properties.
-     * <p/>
-     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     * <p>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:</p>
      *
      * <ul>
      * <li>unbounded channel with multiple consumers</li>
@@ -165,8 +165,8 @@ public final class Channels {
 
     /**
      * Creates a new primitive {@code int} channel with the given properties.
-     * <p/>
-     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     * <p>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:</p>
      *
      * <ul>
      * <li>multiple consumers</li>
@@ -232,8 +232,8 @@ public final class Channels {
     ///
     /**
      * Creates a new primitive {@code long} channel with the given properties.
-     * <p/>
-     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     * <p>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:</p>
      *
      * <ul>
      * <li>multiple consumers</li>
@@ -299,8 +299,8 @@ public final class Channels {
     ///
     /**
      * Creates a new primitive {@code float} channel with the given properties.
-     * <p/>
-     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     * <p>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:</p>
      *
      * <ul>
      * <li>multiple consumers</li>
@@ -366,8 +366,8 @@ public final class Channels {
     ///
     /**
      * Creates a new primitive {@code double} channel with the given properties.
-     * <p/>
-     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:
+     * <p>
+     * Some combinations of properties are unsupported, and will throw an {@code IllegalArgumentException} if requested:</p>
      *
      * <ul>
      * <li>multiple consumers</li>
@@ -434,6 +434,9 @@ public final class Channels {
      * Tests whether a given channel is a <i>ticker channel</i>, namely a channel with a bounded buffer 
      * and an {@link OverflowPolicy overflow policy} of {@code DISPLACE}.
      * A ticker channel can be passed to one of the {@link #newTickerConsumerFor(Channel) newTickerConsumerFor} methods.
+     *
+     * @param channel the channel
+     * @return {@code true} if the channel is a ticker, {@code false} otherwise
      */
     public static boolean isTickerChannel(ReceivePort<?> channel) {
         return channel instanceof QueueChannel 
@@ -509,6 +512,8 @@ public final class Channels {
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to the {@code out} channel.
      * <p>
+     * @param <S>          the message type of the input (source) channel.
+     * @param <T>          the message type of the output (target) channel.
      * @param fiberFactory will be used to create the fiber
      * @param in           the input channel
      * @param out          the output channel
@@ -534,6 +539,8 @@ public final class Channels {
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally
      * (throws an exception), the output channel is {@link SendPort#close(Throwable) closed with that exception}.
      *
+     * @param <S>          the message type of the input (source) channel.
+     * @param <T>          the message type of the output (target) channel.
      * @param in          the input channel
      * @param out         the output channel
      * @param transformer the transforming operation
@@ -546,8 +553,8 @@ public final class Channels {
      * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
-     * @param <M>
-     * @param channels
+     * @param <M> the message type of the receive ports
+     * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
@@ -558,8 +565,8 @@ public final class Channels {
      * Returns a {@link ReceivePort} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
-     * @param <M>
-     * @param channels
+     * @param <M> the message type of the receive ports
+     * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? extends M>> channels) {
@@ -570,8 +577,8 @@ public final class Channels {
      * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
-     * @param <M>
-     * @param channels
+     * @param <M> the message type of the receive ports
+     * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> Mix<? extends M> mix(final ReceivePort<? extends M>... channels) {
@@ -582,8 +589,8 @@ public final class Channels {
      * Returns a {@link Mix} that receives messages from a set of channels. Messages from all given channels are funneled into
      * the returned channel.
      *
-     * @param <M>
-     * @param channels
+     * @param <M> the message type of the receive ports
+     * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
     public static <M> Mix<? extends M> mix(final Collection<? extends ReceivePort<? extends M>> channels) {
@@ -593,8 +600,8 @@ public final class Channels {
     /**
      * Returns a {@link ReceivePort} that filters messages that satisfy a predicate from a given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
-     * <p/>
-     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <M>     the message type.
      * @param channel The channel to filter
@@ -622,8 +629,8 @@ public final class Channels {
 
     /**
      * Returns a {@link ReceivePort} providing messages that are transformed from a given channel by a given reduction function.
-     * <p/>
-     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code ReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <S>     The message type of the source (given) channel.
      * @param <T>     The message type of the target (returned) channel.
@@ -646,6 +653,7 @@ public final class Channels {
      * @param <T>     the message type of the target (returned) channel.
      * @param channel the channel to transform
      * @param f       the exception mapping function
+     * @return        a {@link ReceivePort} that maps exceptions thrown by the given channel
      */
     public static <T> ReceivePort<T> mapErrors(ReceivePort<T> channel, Function<Exception, T> f) {
         return new ErrorMappingReceivePort<>(channel, f);
@@ -679,8 +687,11 @@ public final class Channels {
      * Performs the given action on each message received by the given channel.
      * This method returns only after all messages have been consumed and the channel has been closed.
      *
+     * @param <T>     the message type
      * @param channel the channel
      * @param action  the actions
+     * @throws InterruptedException
+     * @throws SuspendExecution
      */
     public static <T> void forEach(ReceivePort<T> channel, Consumer<T> action) throws InterruptedException {
         T m;
@@ -693,6 +704,7 @@ public final class Channels {
      * Returns a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
      *
      * @param channel   The channel.
+     * @param <T>       The message type.
      * @param count     The maximum number of messages extracted from the underlying channel.
      * @return a {@link ReceivePort} that can provide at most {@code count} messages from {@code channel}.
      */
@@ -715,8 +727,12 @@ public final class Channels {
     /**
      * Returns a {@link ReceivePort} that combines each vector of messages from a vector of channels into a single combined message.
      *
-     * @param <M> The type of the combined message
-     * @param f   The combining function
+     * @param <M>  The type of the combined message
+     * @param f    The combining function
+     * @param <S1> The message type of the first input port
+     * @param c1   The first input port
+     * @param <S2> The message type of the second input port
+     * @param c2   The second input port
      * @return A zipping {@link ReceivePort}
      */
     public static <M, S1, S2> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, final Function2<S1, S2, M> f) {
@@ -733,6 +749,12 @@ public final class Channels {
      *
      * @param <M> The type of the combined message
      * @param f   The combining function
+     * @param <S1> The message type of the first input port
+     * @param c1   The first input port
+     * @param <S2> The message type of the second input port
+     * @param c2   The second input port
+     * @param <S3> The message type of the third input port
+     * @param c3   The third input port
      * @return A zipping {@link ReceivePort}
      */
     public static <M, S1, S2, S3> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, final Function3<S1, S2, S3, M> f) {
@@ -749,6 +771,14 @@ public final class Channels {
      *
      * @param <M> The type of the combined message
      * @param f   The combining function
+     * @param <S1> The message type of the first input port
+     * @param c1   The first input port
+     * @param <S2> The message type of the second input port
+     * @param c2   The second input port
+     * @param <S3> The message type of the third input port
+     * @param c3   The third input port
+     * @param <S4> The message type of the fourth input port
+     * @param c4   The fourth input port
      * @return A zipping {@link ReceivePort}
      */
     public static <M, S1, S2, S3, S4> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4,
@@ -766,6 +796,16 @@ public final class Channels {
      *
      * @param <M> The type of the combined message
      * @param f   The combining function
+     * @param <S1> The message type of the first input port
+     * @param c1   The first input port
+     * @param <S2> The message type of the second input port
+     * @param c2   The second input port
+     * @param <S3> The message type of the third input port
+     * @param c3   The third input port
+     * @param <S4> The message type of the fourth input port
+     * @param c4   The fourth input port
+     * @param <S5> The message type of the fifth input port
+     * @param c5   The fifth input port
      * @return A zipping {@link ReceivePort}
      */
     public static <M, S1, S2, S3, S4, S5> ReceivePort<M> zip(ReceivePort<S1> c1, ReceivePort<S2> c2, ReceivePort<S3> c3, ReceivePort<S4> c4, ReceivePort<S5> c5,
@@ -781,6 +821,10 @@ public final class Channels {
     /**
      * Returns a {@link TransformingReceivePort} wrapping the given channel, which may be used for functional
      * transformations.
+     *
+     * @param <M>     the message type
+     * @param channel the channel to transform
+     * @return the transformed {@link ReceivePort}
      */
     public static <M> TransformingReceivePort<M> transform(ReceivePort<M> channel) {
         return new TransformingReceivePort<>(channel);
@@ -789,8 +833,8 @@ public final class Channels {
     /**
      * Returns a {@link SendPort} that filters messages that satisfy a predicate before sending to a given channel.
      * Messages that don't satisfy the predicate will be silently discarded when sent.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <M>     the message type.
      * @param channel The channel to filter
@@ -803,8 +847,8 @@ public final class Channels {
 
     /**
      * Returns a {@link SendPort} that transforms messages by applying a given mapping function before sending them to a given channel.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <S>     the message type of the source (returned) channel.
      * @param <T>     the message type of the target (given) channel.
@@ -818,8 +862,8 @@ public final class Channels {
 
     /**
      * Returns a {@link SendPort} accepting messages that are transformed by a reduction function.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <S>     The message type of the source (returned) channel.
      * @param <T>     The message type of the target (given) channel.
@@ -836,15 +880,15 @@ public final class Channels {
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into a given channel.
      * Unlike {@link #mapSend(SendPort, Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
-     * <p/>
+     * <p>
      * To return a single value the mapping function can make use of {@link #singletonReceivePort(Object) singletonReceivePort}. To return a collection,
      * it can make use of {@link #toReceivePort(Iterable) toReceivePort(Iterable)}. To emit no values, the function can return {@link #emptyReceivePort()}
-     * or {@code null}.
-     * <p/>
+     * or {@code null}.</p>
+     * <p>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
-     * may be interleaved with other messages.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * may be interleaved with other messages.</p>
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param <S>     the message type of the source (given) channel.
      * @param <T>     the message type of the target (returned) channel.
@@ -879,6 +923,10 @@ public final class Channels {
     /**
      * Returns a {@link TransformingSendPort} wrapping the given channel, which may be used for functional
      * transformations.
+     *
+     * @param <M>     the message type
+     * @param channel the channel to transform
+     * @return the transformed {@link SendPort}
      */
     public static <M> TransformingSendPort<M> transformSend(SendPort<M> channel) {
         return new TransformingSendPort<>(channel);

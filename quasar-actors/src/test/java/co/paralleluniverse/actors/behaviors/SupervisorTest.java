@@ -1,45 +1,41 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorRegistry;
-import co.paralleluniverse.actors.ActorSpec;
-import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.ShutdownMessage;
+import co.paralleluniverse.actors.*;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildMode;
 import co.paralleluniverse.actors.behaviors.Supervisor.ChildSpec;
 import co.paralleluniverse.actors.behaviors.SupervisorActor.RestartStrategy;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
-
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import static org.hamcrest.CoreMatchers.*;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.Strand;
 import org.junit.After;
-import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
@@ -51,21 +47,20 @@ public class SupervisorTest {
     public TestName name = new TestName();
     @Rule
     public TestRule watchman = TestUtil.WATCHMAN;
-    
+
     @After
     public void tearDown() {
         ActorRegistry.clear();
         scheduler.shutdown();
     }
-    
-    private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);
-    static final int mailboxSize = 10;
-    private static FiberScheduler scheduler;
+
+    private static ExecutorService scheduler;
     private static FiberFactory factory;
 
     public SupervisorTest() throws Exception {
-        factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
-        java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
+        factory = DefaultFiberFactory.getInstance();
+        scheduler = DefaultFiberScheduler.getInstance();
+//        java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
     }
 
     private static class Actor1 extends BasicActor<Object, Integer> {
@@ -74,11 +69,11 @@ public class SupervisorTest {
         }
 
         @Override
-        protected Integer doRun() throws SuspendExecution, InterruptedException {
+        protected Integer doRun() throws InterruptedException {
             register();
             int i = 0;
             try {
-                for (;;) {
+                for (; ; ) {
                     Object m = receive();
                     i++;
                 }
@@ -103,11 +98,11 @@ public class SupervisorTest {
         }
 
         @Override
-        protected Integer doRun() throws SuspendExecution, InterruptedException {
+        protected Integer doRun() throws InterruptedException {
             register();
             int i = 0;
             try {
-                for (;;) {
+                for (; ; ) {
                     Object m = receive();
                     i++;
                     throw new RuntimeException("Ha!");
@@ -118,7 +113,7 @@ public class SupervisorTest {
         }
     }
 
-//    private <Message, V> Actor<Message, V> getRegisteredActor(String name, long timeout) throws InterruptedException {
+    //    private <Message, V> Actor<Message, V> getRegisteredActor(String name, long timeout) throws InterruptedException {
 //        Actor<Message, V> a;
 //        final long start = System.nanoTime();
 //        while ((a = (Actor)Actor.getActor(name)) == null || a.isDone()) {
@@ -128,7 +123,7 @@ public class SupervisorTest {
 //        }
 //        return a;
 //    }
-    private <Message> ActorRef<Message> getChild(Supervisor sup, String name, long timeout) throws InterruptedException, SuspendExecution {
+    private <Message> ActorRef<Message> getChild(Supervisor sup, String name, long timeout) throws InterruptedException {
         return (ActorRef<Message>) sup.getChild(name);
 //        Actor<Message, V> a;
 //        final long start = System.nanoTime();
@@ -140,7 +135,7 @@ public class SupervisorTest {
 //        return a;
     }
 
-    private <Message> List<ActorRef<Message>> getChildren(final Supervisor sup) throws InterruptedException, SuspendExecution {
+    private <Message> List<ActorRef<Message>> getChildren(final Supervisor sup) throws InterruptedException {
         return (List<ActorRef<Message>>) sup.getChildren();
     }
 
@@ -312,11 +307,11 @@ public class SupervisorTest {
         }
 
         @Override
-        protected Integer doRun() throws SuspendExecution, InterruptedException {
+        protected Integer doRun() throws InterruptedException {
             register();
             int i = 0;
             try {
-                for (;;) {
+                for (; ; ) {
                     Object m = receive();
                     i++;
                 }
@@ -374,7 +369,7 @@ public class SupervisorTest {
     public void testRegistration() throws Exception {
         Supervisor s = new SupervisorActor(RestartStrategy.ONE_FOR_ONE) {
             @Override
-            protected void init() throws SuspendExecution, InterruptedException {
+            protected void init() {
                 // Strand.sleep(1000);
                 register("test1");
             }
@@ -397,20 +392,20 @@ public class SupervisorTest {
         }
 
         @Override
-        protected Integer doRun() throws SuspendExecution, InterruptedException {
+        protected Integer doRun() throws InterruptedException {
             final Server<Message1, Integer, Void> adder = new ServerActor<Message1, Integer, Void>() {
                 @Override
-                protected void init() throws SuspendExecution {
+                protected void init() {
                     started.incrementAndGet();
                 }
 
                 @Override
-                protected void terminate(Throwable cause) throws SuspendExecution {
+                protected void terminate(Throwable cause) {
                     terminated.incrementAndGet();
                 }
 
                 @Override
-                protected Integer handleCall(ActorRef<?> from, Object id, Message1 m) throws Exception, SuspendExecution {
+                protected Integer handleCall(ActorRef<?> from, Object id, Message1 m) {
                     int res = m.a + m.b;
                     if (res > 100)
                         throw new RuntimeException("oops!");

@@ -75,9 +75,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     /**
      * Performs a selective receive. This method blocks until a message that is {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is available in the mailbox, and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>  The type of the returned value
      * @param proc performs the selection.
@@ -93,9 +93,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>     The type of the returned value
      * @param timeout the duration to wait for a matching message to arrive.
@@ -113,9 +113,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
@@ -131,9 +131,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Tries to perform a selective receive. If a message {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is immediately available in the mailbox, returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param <T>  The type of the returned value
      * @param proc performs the selection.
@@ -146,9 +146,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     /**
      * Performs a selective receive based on type. This method blocks until a message of the given type is available in the mailbox,
      * and returns it.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param type the type of the messages to select
      * @return The next message of the wanted type.
@@ -161,9 +161,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param timeout the duration to wait for a matching message to arrive.
      * @param unit    timeout's time unit.
@@ -178,9 +178,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
@@ -195,10 +195,11 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Tries to performs a selective receive based on type. If a message of the given type is immediately found in the mailbox, it is returned.
      * Otherwise this method returns {@code null}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
+     * @param <M>  The type of the returned message
      * @param type the type of the messages to select
      * @return The next message of the wanted type if immediately found; {@code null} otherwise.
      */
@@ -208,6 +209,6 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
 
     @Override
     public final String getName() {
-        return (String) super.getName();
+        return super.getName();
     }
 }

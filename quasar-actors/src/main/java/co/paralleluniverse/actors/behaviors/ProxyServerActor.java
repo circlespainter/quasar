@@ -35,10 +35,10 @@ import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
  * (on a dedicated strand).
- * <p/>
+ * <p>
  * You can either supply a target object to any of the public constructors, or extend this class and use the subclass itself as the target,
  * in which case use the protected constructors that don't take a {@code target} argument.
- * <p/>
+ * </p>
  * The interface(s) exposed must
  *
  * @author pron

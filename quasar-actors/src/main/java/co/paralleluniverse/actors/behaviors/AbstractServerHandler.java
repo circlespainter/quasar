@@ -25,8 +25,8 @@ import co.paralleluniverse.actors.ActorRef;
 public class AbstractServerHandler<CallMessage, V, CastMessage> implements ServerHandler<CallMessage, V, CastMessage> {
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation does nothing</b>
+     * <p>
+     * <b>This implementation does nothing</b></p>
      */
     @Override
     public void init() {
@@ -34,8 +34,8 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation throws an {@link UnsupportedOperationException}.</b>
+     * <p>
+     * <b>This implementation throws an {@link UnsupportedOperationException}.</b></p>
      */
     @Override
     public V handleCall(ActorRef<?> from, Object id, CallMessage m) {
@@ -44,8 +44,8 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation does nothing</b>
+     * <p>
+     * <b>This implementation does nothing</b></p>
      */
     @Override
     public void handleCast(ActorRef<?> from, Object id, CastMessage m) {
@@ -53,8 +53,8 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation does nothing</b>
+     * <p>
+     * <b>This implementation does nothing</b></p>
      */
     @Override
     public void handleInfo(Object m) {
@@ -62,8 +62,8 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation does nothing</b>
+     * <p>
+     * <b>This implementation does nothing</b></p>
      */
     @Override
     public void handleTimeout() {
@@ -71,8 +71,8 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * <b>This implementation does nothing</b>
+     * <p>
+     * <b>This implementation does nothing</b></p>
      */
     @Override
     public void terminate(Throwable cause) {

@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -16,26 +16,29 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.*;
-
-import org.junit.After;
 import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.junit.rules.TestRule;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -56,11 +59,12 @@ public class ServerTest {
     }
 
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
-    private FiberScheduler scheduler;
+    private ExecutorService scheduler;
     private FiberFactory factory;
 
     public ServerTest() {
-        factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        factory = DefaultFiberFactory.getInstance();
+        scheduler = DefaultFiberScheduler.getInstance();
     }
 
     private Server<Message, Integer, Message> spawnServer(ServerHandler<Message, Integer, Message> server) {
@@ -68,13 +72,10 @@ public class ServerTest {
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(scheduler, actor);
-        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Strand s, Throwable e) {
-                e.printStackTrace();
-                throw Exceptions.rethrow(e);
-            }
+        co.paralleluniverse.fibers.Fiber fiber = new co.paralleluniverse.fibers.Fiber(scheduler, actor);
+        fiber.setUncaughtExceptionHandler((s, e) -> {
+            e.printStackTrace();
+            throw Exceptions.rethrow(e);
         });
         fiber.start();
         return actor;
@@ -96,7 +97,7 @@ public class ServerTest {
 
     @Test
     public void whenShutdownIsCalledInInitThenServerStops() throws Exception {
-        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> gs = spawnServer(new AbstractServerHandler<>() {
             @Override
             public void init() {
                 ServerActor.currentServerActor().shutdown();
@@ -108,7 +109,7 @@ public class ServerTest {
 
     @Test
     public void whenCalledThenResultIsReturned() throws Exception {
-        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<>() {
             @Override
             public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 ServerActor.currentServerActor().shutdown();
@@ -116,8 +117,8 @@ public class ServerTest {
             }
         });
 
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            protected Integer doRun() throws SuspendExecution, InterruptedException {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<>(mailboxConfig) {
+            protected Integer doRun() throws InterruptedException {
                 return s.call(new Message(3, 4));
             }
         });
@@ -149,7 +150,7 @@ public class ServerTest {
     public void whenCalledAndTimeoutThenThrowTimeout() throws Exception {
         Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
             @Override
-            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -172,9 +173,9 @@ public class ServerTest {
 
     @Test
     public void testDefaultTimeout1() throws Exception {
-        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<>() {
             @Override
-            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -199,9 +200,9 @@ public class ServerTest {
 
     @Test
     public void testDefaultTimeout2() throws Exception {
-        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<>() {
             @Override
-            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 try {
                     Strand.sleep(50);
                     ServerActor.currentServerActor().shutdown();
@@ -223,12 +224,12 @@ public class ServerTest {
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToCaller() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
+        when(server.handleCall(any(ActorRef.class), any(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
         final Server<Message, Integer, Message> s = spawnServer(server);
 
-        Actor<Message, Void> actor = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
-            protected Void doRun() throws SuspendExecution, InterruptedException {
+        Actor<Message, Void> actor = spawnActor(new BasicActor<>(mailboxConfig) {
+            protected Void doRun() throws InterruptedException {
                 try {
                     int res = s.call(new Message(3, 4));
                     fail();
@@ -250,7 +251,7 @@ public class ServerTest {
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToThreadCaller() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
+        when(server.handleCall(any(ActorRef.class), any(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
         final Server<Message, Integer, Message> s = spawnServer(server);
 
@@ -292,18 +293,18 @@ public class ServerTest {
 
     @Test
     public void whenLinkedActorDiesDuringCallThenCallerDies() throws Exception {
-        final Actor<Message, Void> a = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        final Actor<Message, Void> a = spawnActor(new BasicActor<>(mailboxConfig) {
             @Override
-            protected Void doRun() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for (;;)
+                for (; ; )
                     System.out.println(receive());
             }
         });
 
-        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<>() {
             @Override
-            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 try {
                     a.getStrand().interrupt();
                     Strand.sleep(500);
@@ -314,9 +315,9 @@ public class ServerTest {
             }
         });
 
-        final Actor<Message, Void> m = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+        final Actor<Message, Void> m = spawnActor(new BasicActor<>(mailboxConfig) {
             @Override
-            protected Void doRun() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws InterruptedException {
                 link(a.ref());
                 s.call(new Message(3, 4));
                 return null;
@@ -339,19 +340,19 @@ public class ServerTest {
     }
 
     @Test
-    public void whenWatchedActorDiesDuringCallThenExitMessageDeferred() throws Exception {
-        final Actor<Message, Void> a = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+    public void whenWatchedActorDiesDuringCallThenExitMessageDeferred() {
+        final Actor<Message, Void> a = spawnActor(new BasicActor<>(mailboxConfig) {
             @Override
-            protected Void doRun() throws SuspendExecution, InterruptedException {
+            protected Void doRun() throws InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for (;;)
+                for (; ; )
                     System.out.println(receive());
             }
         });
 
-        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<Message, Integer, Message>() {
+        final Server<Message, Integer, Message> s = spawnServer(new AbstractServerHandler<>() {
             @Override
-            public Integer handleCall(ActorRef<?> from, Object id, Message m) throws SuspendExecution {
+            public Integer handleCall(ActorRef<?> from, Object id, Message m) {
                 try {
                     a.getStrand().interrupt();
                     Strand.sleep(500);
@@ -363,15 +364,15 @@ public class ServerTest {
         });
 
         final AtomicReference<ExitMessage> emr = new AtomicReference<>();
-        final Actor<Message, Object[]> m = spawnActor(new BasicActor<Message, Object[]>(mailboxConfig) {
+        final Actor<Message, Object[]> m = spawnActor(new BasicActor<>(mailboxConfig) {
             private Object watch;
 
             @Override
-            protected Object[] doRun() throws SuspendExecution, InterruptedException {
+            protected Object[] doRun() throws InterruptedException {
                 return new Object[]{
-                    watch = watch(a.ref()),
-                    s.call(new Message(3, 4)),
-                    receive(100, TimeUnit.MILLISECONDS)
+                        watch = watch(a.ref()),
+                        s.call(new Message(3, 4)),
+                        receive(100, TimeUnit.MILLISECONDS)
                 };
             }
 
@@ -406,7 +407,7 @@ public class ServerTest {
     public void whenTimeoutThenHandleTimeoutIsCalled() throws Exception {
         final AtomicInteger counter = new AtomicInteger(0);
 
-        ServerActor<Message, Integer, Message> s = spawnActor(new ServerActor<Message, Integer, Message>() {
+        ServerActor<Message, Integer, Message> s = spawnActor(new ServerActor<>() {
             @Override
             protected void init() {
                 setTimeout(20, TimeUnit.MILLISECONDS);
@@ -433,7 +434,7 @@ public class ServerTest {
             private boolean received;
 
             @Override
-            public void init() throws SuspendExecution {
+            public void init() {
                 setTimeout(50, TimeUnit.MILLISECONDS);
             }
 
@@ -449,7 +450,7 @@ public class ServerTest {
             }
 
             @Override
-            protected void handleTimeout() throws SuspendExecution {
+            protected void handleTimeout() {
                 if (received) {
                     reply(from, id, a + b);
                     shutdown();
@@ -457,8 +458,8 @@ public class ServerTest {
             }
         }.spawn();
 
-        Actor<Message, Integer> actor = spawnActor(new BasicActor<Message, Integer>(mailboxConfig) {
-            protected Integer doRun() throws SuspendExecution, InterruptedException {
+        Actor<Message, Integer> actor = spawnActor(new BasicActor<>(mailboxConfig) {
+            protected Integer doRun() throws InterruptedException {
                 return s.call(new Message(3, 4));
             }
         });
@@ -478,7 +479,7 @@ public class ServerTest {
             private boolean received;
 
             @Override
-            public void init() throws SuspendExecution {
+            public void init() {
                 setTimeout(50, TimeUnit.MILLISECONDS);
             }
 
@@ -494,7 +495,7 @@ public class ServerTest {
             }
 
             @Override
-            protected void handleTimeout() throws SuspendExecution {
+            protected void handleTimeout() {
                 if (received) {
                     reply(from, id, a + b);
                     shutdown();
@@ -514,7 +515,7 @@ public class ServerTest {
             private boolean received;
 
             @Override
-            public void init() throws SuspendExecution {
+            public void init() {
                 setTimeout(50, TimeUnit.MILLISECONDS);
             }
 
@@ -525,7 +526,7 @@ public class ServerTest {
             }
 
             @Override
-            protected void handleTimeout() throws SuspendExecution {
+            protected void handleTimeout() {
                 if (received)
                     throw new RuntimeException("my exception");
             }
@@ -556,7 +557,7 @@ public class ServerTest {
         s.shutdown();
         LocalActor.join(s);
 
-        verify(server).handleCast(any(ActorRef.class), anyObject(), eq(new Message(3, 4)));
+        verify(server).handleCast(isNull(), any(), eq(new Message(3, 4)));
     }
 
     @Test
@@ -588,7 +589,7 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
 
         final Exception myException = new RuntimeException("my exception");
-        doThrow(myException).when(server).handleInfo(anyObject());
+        doThrow(myException).when(server).handleInfo(any());
         final Server<Message, Integer, Message> s = spawnServer(server);
 
         s.send("foo");
@@ -607,7 +608,7 @@ public class ServerTest {
     public void testRegistration() throws Exception {
         Server<Message, Integer, Message> s = new ServerActor<Message, Integer, Message>() {
             @Override
-            protected void init() throws SuspendExecution, InterruptedException {
+            protected void init() {
                 // Strand.sleep(1000);
                 register("my-server");
             }

@@ -13,11 +13,11 @@
  */
 package co.paralleluniverse.kotlin.fibers.stdlib
 
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
-import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.fibers.DefaultFiberScheduler
 import co.paralleluniverse.kotlin.quasarLazy
 import org.junit.Assert
 import org.junit.Test
+import java.util.concurrent.Callable
 import kotlin.properties.Delegates
 import kotlin.test.assertNull
 
@@ -25,134 +25,141 @@ import kotlin.test.assertNull
  * @author circlespainter
  */
 class StdDelegates {
-    val scheduler = FiberForkJoinScheduler("test", 4, null, false)
+    val scheduler = DefaultFiberScheduler.getInstance()
 
-    @Test fun testLocalValLazySyncDelegProp() {
-        val ipLazySync by quasarLazy @Suspendable {
-            Fiber.sleep(1)
+    @Test
+    fun testLocalValLazySyncDelegProp() {
+        val ipLazySync by quasarLazy {
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             true
         }
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazySync
         }).start().get())
     }
 
-    private @get:Suspendable val ipLazySync by quasarLazy @Suspendable {
-        Fiber.sleep(1)
+    private val ipLazySync by quasarLazy {
+        co.paralleluniverse.fibers.Fiber.sleep(1)
         true
     }
 
-    @Test fun testValLazySyncDelegProp() {
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testValLazySyncDelegProp() {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazySync
         }).start().get())
     }
 
-    @Test fun testLocalValLazyPubDelegProp() {
-        val ipLazyPub by lazy(LazyThreadSafetyMode.PUBLICATION) @Suspendable {
-            Fiber.sleep(1)
+    @Test
+    fun testLocalValLazyPubDelegProp() {
+        val ipLazyPub by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             true
         }
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazyPub
         }).start().get())
     }
 
-    private @get:Suspendable val ipLazyPub by lazy(LazyThreadSafetyMode.PUBLICATION) @Suspendable {
-        Fiber.sleep(1)
+    private val ipLazyPub by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        co.paralleluniverse.fibers.Fiber.sleep(1)
         true
     }
 
-    @Test fun testValLazyPubDelegProp() {
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testValLazyPubDelegProp() {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazyPub
         }).start().get())
     }
 
-    @Test fun testLocalValLazyUnsafeDelegProp() {
-        val ipLazyNone by lazy(LazyThreadSafetyMode.NONE) @Suspendable {
-            Fiber.sleep(1)
+    @Test
+    fun testLocalValLazyUnsafeDelegProp() {
+        val ipLazyNone by lazy(LazyThreadSafetyMode.NONE) {
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             true
         }
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazyNone
         }).start().get())
     }
 
-    private @get:Suspendable val ipLazyNone by lazy(LazyThreadSafetyMode.NONE) @Suspendable {
-        Fiber.sleep(1)
+    private val ipLazyNone by lazy(LazyThreadSafetyMode.NONE) {
+        co.paralleluniverse.fibers.Fiber.sleep(1)
         true
     }
 
-    @Test fun testValLazyUnsafeDelegProp() {
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testValLazyUnsafeDelegProp() {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ipLazyNone
         }).start().get())
     }
 
-    @Test fun testLocalValObservableDelegProp() {
-        val ivObs: Boolean? by Delegates.observable(true) {
-            _, old, new ->
-            Fiber.sleep(1)
+    @Test
+    fun testLocalValObservableDelegProp() {
+        val ivObs: Boolean? by Delegates.observable(true) { _, old, new ->
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             println("$old -> $new")
         }
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ivObs
-        }).start().get())
+        }).start().get()!!)
     }
 
-    @get:Suspendable val ivObs: Boolean? by Delegates.observable(true) {
-        _, old, new ->
-        Fiber.sleep(1)
+    val ivObs: Boolean? by Delegates.observable(true) { _, old, new ->
+        co.paralleluniverse.fibers.Fiber.sleep(1)
         println("$old -> $new")
     }
 
-    @Test fun testValObservableDelegProp() {
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testValObservableDelegProp() {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             ivObs
-        }).start().get())
+        }).start().get()!!)
     }
 
-    @Test fun testLocalVarObservableGetDelegProp() {
+    @Test
+    fun testLocalVarObservableGetDelegProp() {
         @Suppress("CanBeVal")
-        var mvObs: Boolean? by Delegates.observable<Boolean?>(null) {
-            _, old, new ->
-            Fiber.sleep(1)
+        var mvObs: Boolean? by Delegates.observable<Boolean?>(null) { _, old, new ->
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             println("$old -> $new")
         }
-        assertNull(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        assertNull(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             mvObs
         }).start().get())
     }
 
-    @Test fun testLocalVarObservableSetDelegProp() {
-        var mvObs: Boolean? by Delegates.observable<Boolean?>(null) {
-            _, old, new ->
-            Fiber.sleep(1)
+    @Test
+    fun testLocalVarObservableSetDelegProp() {
+        var mvObs: Boolean? by Delegates.observable<Boolean?>(null) { _, old, new ->
+            co.paralleluniverse.fibers.Fiber.sleep(1)
             println("$old -> $new")
         }
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             mvObs = true
             mvObs
-        }).start().get())
+        }).start().get()!!)
     }
 
-    @get:Suspendable @set:Suspendable  var mvObs: Boolean? by Delegates.observable<Boolean?>(null) {
-        _, old, new ->
-        Fiber.sleep(1)
+    var mvObs: Boolean? by Delegates.observable<Boolean?>(null) { _, old, new ->
+        co.paralleluniverse.fibers.Fiber.sleep(1)
         println("$old -> $new")
     }
 
-    @Test fun testVarObservableGetDelegProp() {
-        assertNull(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testVarObservableGetDelegProp() {
+        assertNull(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             mvObs
         }).start().get())
     }
 
-    @Test fun testVarObservableSetDelegProp() {
-        Assert.assertTrue(Fiber(scheduler, SuspendableCallable<Boolean> @Suspendable {
+    @Test
+    fun testVarObservableSetDelegProp() {
+        Assert.assertTrue(co.paralleluniverse.fibers.Fiber(scheduler, Callable {
             mvObs = true
             mvObs
-        }).start().get())
+        }).start().get()!!)
     }
 }

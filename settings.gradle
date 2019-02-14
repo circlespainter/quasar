@@ -1,1 +1,2 @@
-include 'quasar-core','quasar-actors','quasar-reactive-streams','quasar-disruptor','quasar-kotlin'
+include 'quasar-core','quasar-actors','quasar-reactive-streams','quasar-disruptor'
+include 'quasar-kotlin'

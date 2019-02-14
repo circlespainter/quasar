@@ -14,11 +14,14 @@
 package co.paralleluniverse.kotlin.fibers
 
 import co.paralleluniverse.common.util.CheckedCallable
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.DefaultFiberScheduler
+import co.paralleluniverse.fibers.FiberAsync
+import co.paralleluniverse.strands.Strand
 import org.hamcrest.CoreMatchers.equalTo
 import org.junit.Assert.assertThat
 import org.junit.Assert.fail
 import org.junit.Test
+import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -28,7 +31,7 @@ import java.util.concurrent.TimeoutException
  * @author circlespainter
  */
 class FiberAsyncTest {
-    private val scheduler = FiberForkJoinScheduler("test", 4, null, false)
+    private val scheduler = DefaultFiberScheduler.getInstance()
 
     private interface MyCallback {
         fun call(str: String)
@@ -88,8 +91,7 @@ class FiberAsyncTest {
     }
 
     companion object {
-        // TODO With Java 7 compiler (unsupported as of Kotlin 1.1) the resulting bytecode calls the wrong one! Investigate and possibly report
-        @Suspendable private fun callService(service: Service): String {
+        private fun callService(service: Service): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this)
@@ -97,7 +99,7 @@ class FiberAsyncTest {
             }.run()
         }
 
-        @Suspendable private fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
+        private fun callService(service: Service, timeout: Long, unit: TimeUnit): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
                     service.registerCallback(this)
@@ -118,7 +120,7 @@ class FiberAsyncTest {
 
     @Test
     fun testSyncCallback() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             val res = callService(syncService)
             assertThat(res, equalTo("sync result!"))
         }).start()
@@ -128,7 +130,7 @@ class FiberAsyncTest {
 
     @Test
     fun testSyncCallbackException() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 callService(badSyncService)
                 fail()
@@ -142,7 +144,7 @@ class FiberAsyncTest {
 
     @Test
     fun testAsyncCallback() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             val res = callService(asyncService)
             assertThat(res, equalTo("async result!"))
         }).start()
@@ -152,7 +154,7 @@ class FiberAsyncTest {
 
     @Test
     fun testAsyncCallbackException() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 callService(badAsyncService)
                 fail()
@@ -166,7 +168,7 @@ class FiberAsyncTest {
 
     @Test
     fun testAsyncCallbackExceptionInRequestAsync() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 object : FiberAsync<String, RuntimeException>() {
                     override fun requestAsync() {
@@ -184,7 +186,7 @@ class FiberAsyncTest {
 
     @Test
     fun testTimedAsyncCallbackNoTimeout() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 val res = callService(asyncService, 100, TimeUnit.MILLISECONDS)
                 assertThat(res, equalTo("async result!"))
@@ -198,7 +200,7 @@ class FiberAsyncTest {
 
     @Test
     fun testTimedAsyncCallbackWithTimeout() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 callService(asyncService, 10, TimeUnit.MILLISECONDS)
                 fail()
@@ -210,7 +212,7 @@ class FiberAsyncTest {
 
     @Test
     fun testInterrupt1() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 callService(longAsyncService)
                 fail()
@@ -223,7 +225,7 @@ class FiberAsyncTest {
 
     @Test
     fun testInterrupt2() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
                 callService(longAsyncService)
                 fail()
@@ -237,8 +239,8 @@ class FiberAsyncTest {
 
     @Test
     fun testRunBlocking() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
-            val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
+            val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), CheckedCallable<kotlin.String, java.lang.InterruptedException> {
                 Strand.sleep(300)
                 "ok"
             })
@@ -250,9 +252,9 @@ class FiberAsyncTest {
 
     @Test
     fun testRunBlockingWithTimeout1() {
-        val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
-                val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
+                val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> {
                     Strand.sleep(300)
                     "ok"
                 })
@@ -267,9 +269,9 @@ class FiberAsyncTest {
 
     @Test
     fun testRunBlockingWithTimeout2() {
-        val fiber = Fiber<Void>(SuspendableRunnable @Suspendable {
+        val fiber = co.paralleluniverse.fibers.Fiber<Unit>(scheduler, Callable {
             try {
-                FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
+                FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> {
                     Strand.sleep(300)
                     "ok"
                 })

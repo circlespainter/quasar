@@ -83,7 +83,7 @@ public class StrandsBenchmark {
 
         final Channel<String> lastChannel = c;
 
-        Strand ringLeader = newStrand(heavyweight, (Callable) () -> {
+        Strand ringLeader = newStrand(heavyweight, () -> {
             lastChannel.send("number:"); // start things off
 
             String m = null;
@@ -100,7 +100,7 @@ public class StrandsBenchmark {
 
     Channel<String> createRelayStrand(boolean heavyweight, final Channel<String> prev) {
         final Channel<String> channel = Channels.newChannel(bufferSize);
-        Strand s = newStrand(heavyweight, (Callable) () -> {
+        Strand s = newStrand(heavyweight, () -> {
             String m;
             while ((m = channel.receive()) != null)
                 prev.send(createMessage(m));

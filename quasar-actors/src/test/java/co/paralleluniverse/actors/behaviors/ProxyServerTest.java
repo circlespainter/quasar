@@ -1,37 +1,39 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorRegistry;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.FiberForkJoinScheduler;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.DefaultFiberScheduler;
+import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.Channels;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import static org.hamcrest.CoreMatchers.*;
 import org.junit.After;
-import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 /**
  * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
@@ -51,11 +53,12 @@ public class ProxyServerTest {
     }
 
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);
+    private ExecutorService scheduler;
     private FiberFactory factory;
-    private FiberScheduler scheduler;
 
     public ProxyServerTest() {
-        factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+        factory = DefaultFiberFactory.getInstance();
+        scheduler = DefaultFiberScheduler.getInstance();
     }
 
     private Server<?, ?, ?> spawnServer(boolean callOnVoidMethods, Object target) {
@@ -63,13 +66,10 @@ public class ProxyServerTest {
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        Fiber fiber = new Fiber(scheduler, actor);
-        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Strand s, Throwable e) {
-                e.printStackTrace();
-                throw Exceptions.rethrow(e);
-            }
+        co.paralleluniverse.fibers.Fiber fiber = new co.paralleluniverse.fibers.Fiber(scheduler, actor);
+        fiber.setUncaughtExceptionHandler((s, e) -> {
+            e.printStackTrace();
+            throw Exceptions.rethrow(e);
         });
         fiber.start();
         return actor;
@@ -106,8 +106,6 @@ public class ProxyServerTest {
                     return str.length() + x;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
                 }
             }
 
@@ -116,8 +114,8 @@ public class ProxyServerTest {
             }
         });
 
-        Actor<?, Integer> actor = spawnActor(new BasicActor<Object, Integer>(mailboxConfig) {
-            protected Integer doRun() throws SuspendExecution, InterruptedException {
+        Actor<?, Integer> actor = spawnActor(new BasicActor<>(mailboxConfig) {
+            protected Integer doRun() {
                 return ((A) a).foo("hello", 2);
             }
         });
@@ -138,8 +136,6 @@ public class ProxyServerTest {
                     return str.length() + x;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
                 }
             }
 
@@ -172,8 +168,8 @@ public class ProxyServerTest {
             }
         });
 
-        Actor<?, Void> actor = spawnActor(new BasicActor<Object, Void>(mailboxConfig) {
-            protected Void doRun() throws SuspendExecution, InterruptedException {
+        Actor<?, Void> actor = spawnActor(new BasicActor<>(mailboxConfig) {
+            protected Void doRun() {
                 try {
                     int res = ((A) a).foo("hello", 2);
                     fail();
@@ -228,8 +224,6 @@ public class ProxyServerTest {
                     called.set(x);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
                 }
             }
         });
@@ -257,8 +251,6 @@ public class ProxyServerTest {
                     called.set(x);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
                 }
             }
         });
@@ -279,8 +271,6 @@ public class ProxyServerTest {
                     return str.length() + x;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
-                } catch (SuspendExecution e) {
-                    throw new AssertionError(e);
                 }
             }
 
@@ -319,12 +309,12 @@ public class ProxyServerTest {
         }) {
 
             @Override
-            protected void init() throws InterruptedException, SuspendExecution {
+            protected void init() {
                 register();
             }
 
         }.spawn();
 
-        assertTrue((A) a == (A) ActorRegistry.getActor("test1"));
+        assertTrue(a == ActorRegistry.getActor("test1"));
     }
 }

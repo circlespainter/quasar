@@ -1,4 +1,4 @@
- /*
+/*
  * Quasar: lightweight strands and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
  *
@@ -16,9 +16,11 @@ package co.paralleluniverse.strands.channels;
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import sun.misc.Unsafe;
 
 /**
  * Attempts to perform at most one channel operation (send or receive) of a given set.
@@ -245,6 +246,7 @@ public class Selector<Message> implements Synchronization {
     }
 
     //////////////////////
+
     /**
      * Creates a {@link SelectAction} for a send operation
      *
@@ -292,6 +294,7 @@ public class Selector<Message> implements Synchronization {
     public static <Message> SelectAction<Message> receive(ReceivePort<? extends Message> ch, SelectReceiveListener<Message> listener) {
         return new SelectActionImpl(ch, listener);
     }
+
     ///////////////////
     private static final AtomicLong selectorId = new AtomicLong(); // used to break symmetry to prevent deadlock in transfer channel
     private static final Object LEASED = new Object() {
@@ -355,7 +358,7 @@ public class Selector<Message> implements Synchronization {
             sa.token = sa.port.register((SelectActionImpl) sa);
             lastRegistered = i;
             if (sa.isDone()) {
-                assert winner == sa; // seen to have failed in co.paralleluniverse.strands.channels.GeneralSelectorTest > testFans1[5] 
+                assert winner == sa; // seen to have failed in co.paralleluniverse.strands.channels.GeneralSelectorTest > testFans1[5]
                 res = sa;
                 break;
             } else {
@@ -395,7 +398,7 @@ public class Selector<Message> implements Synchronization {
         try {
             if (res == null) {
                 tryloop:
-                for (;;) {
+                for (; ; ) {
                     if (timed && nanos <= 0)
                         break;
 
@@ -509,20 +512,22 @@ public class Selector<Message> implements Synchronization {
     public String toString() {
         return Selector.class.getName() + '@' + Long.toHexString(id);
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long winnerOffset;
+
+    private static final VarHandle WINNER;
 
     static {
         try {
-            winnerOffset = UNSAFE.objectFieldOffset(Selector.class.getDeclaredField("winner"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            WINNER = l.findVarHandle(Selector.class, "winner", Object.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casWinner(Object expected, Object update) {
-        return UNSAFE.compareAndSwapObject(this, winnerOffset, expected, update);
+        return WINNER.compareAndSet(this, expected, update);
     }
+
     static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     boolean isRecording() {

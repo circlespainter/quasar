@@ -27,9 +27,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.Serializable;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,10 +39,8 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 /**
- *
  * @author pron
  */
-
 @RunWith(Parameterized.class)
 public class FiberTest implements Serializable {
     @Rule
@@ -61,15 +56,15 @@ public class FiberTest implements Serializable {
 
 //    @After
 //    public void tearDown() {
-          // Cannot shutdown FiberScheduler, as it is reused over multiple tests. So these FiberSchedulers and their associated threads will be kept over the whole test run.
+    // Cannot shutdown FiberScheduler, as it is reused over multiple tests. So these FiberSchedulers and their associated threads will be kept over the whole test run.
 //        scheduler.shutdown();
 //    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {Executors.newWorkStealingPool()},
-            {Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build())}});
+                {Executors.newWorkStealingPool()},
+                {Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("fiber-scheduler-%d").setDaemon(true).build())}});
     }
 
     private static co.paralleluniverse.strands.Strand.UncaughtExceptionHandler previousUEH;
@@ -93,7 +88,8 @@ public class FiberTest implements Serializable {
         try {
             fiber.join(50, TimeUnit.MILLISECONDS);
             fail();
-        } catch (final TimeoutException ignored) {}
+        } catch (final TimeoutException ignored) {
+        }
 
         fiber.join(200, TimeUnit.MILLISECONDS);
     }
@@ -119,7 +115,8 @@ public class FiberTest implements Serializable {
             try {
                 Fiber.sleep(100);
                 fail("InterruptedException not thrown");
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }).start();
 
         Thread.sleep(20);
@@ -136,7 +133,8 @@ public class FiberTest implements Serializable {
             try {
                 Fiber.sleep(100);
                 fail("InterruptedException not thrown");
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
             terminated.set(true);
         });
 
@@ -157,7 +155,8 @@ public class FiberTest implements Serializable {
             try {
                 Fiber.sleep(100);
                 fail("InterruptedException not thrown");
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
             terminated.set(true);
         });
 
@@ -167,7 +166,8 @@ public class FiberTest implements Serializable {
         try {
             fiber.join(5, TimeUnit.MILLISECONDS);
             fail();
-        } catch (final CancellationException ignored) {}
+        } catch (final CancellationException ignored) {
+        }
         assertThat(started.get(), is(false));
         assertThat(terminated.get(), is(false));
     }
@@ -304,7 +304,8 @@ public class FiberTest implements Serializable {
         assertThat(st, is(nullValue()));
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void whenFiberIsTerminatedThenDumpStackReturnsNull() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new Runnable() {
             @Override
@@ -342,7 +343,8 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackRunningFiber() throws Exception {
         final Fiber fiber = new Fiber(scheduler, new Runnable() {
             @Override
@@ -352,7 +354,7 @@ public class FiberTest implements Serializable {
 
             private void foo() {
                 final long start = System.nanoTime();
-                for (;;) {
+                for (; ; ) {
                     if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) > 1000)
                         break;
                 }
@@ -378,7 +380,8 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
@@ -425,7 +428,8 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiberWhenCalledFromFiber() throws Exception {
         final Condition cond = new SimpleConditionSynchronizer(null);
         final AtomicBoolean flag = new AtomicBoolean(false);
@@ -475,7 +479,8 @@ public class FiberTest implements Serializable {
         fiber.join();
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackWaitingFiberWhenCalledFromFiber_JDKLoom() throws Exception {
         final AtomicBoolean flag = new AtomicBoolean(false);
 
@@ -538,7 +543,8 @@ public class FiberTest implements Serializable {
         }
     }
 
-    @Test @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
+    @Test
+    @Ignore // TODO Getting a fiber's trace from other strands is currently unimplemented in Loom
     public void testDumpStackSleepingFiber() throws Exception {
         // sleep is a special case
         final Fiber<Void> fiber = new Fiber<>(scheduler, new Callable<Void>() {
@@ -557,8 +563,7 @@ public class FiberTest implements Serializable {
 
         final StackTraceElement[] st = fiber.getStackTrace();
 
-        assertNotNull(st);
-        assertTrue(st.length > 0);
+        // Strand.printStackTrace(st, System.err);
         assertThat(st[0].getMethodName(), equalTo("sleep"));
         boolean found = false;
         for (final StackTraceElement aSt : st) {
@@ -584,7 +589,7 @@ public class FiberTest implements Serializable {
 
         final Fiber<Void> bad = new Fiber<>("bad", scheduler, (Callable<Void>) () -> {
             final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(1000);
-            for (;;) {
+            for (; ; ) {
                 if (System.nanoTime() >= deadline)
                     break;
             }
@@ -599,7 +604,9 @@ public class FiberTest implements Serializable {
     public void testUncaughtExceptionHandler() throws Exception {
         final AtomicReference<Throwable> t = new AtomicReference<>();
 
-        final Fiber<Void> f = new Fiber<>(() -> { throw new RuntimeException("foo"); });
+        final Fiber<Void> f = new Fiber<>(() -> {
+            throw new RuntimeException("foo");
+        });
         f.setUncaughtExceptionHandler((f1, e) -> t.set(e));
 
         f.start();
@@ -618,7 +625,9 @@ public class FiberTest implements Serializable {
     public void testDefaultUncaughtExceptionHandler() throws Exception {
         final AtomicReference<Throwable> t = new AtomicReference<>();
 
-        final Fiber<Void> f = new Fiber<>(() -> { throw new RuntimeException("foo"); });
+        final Fiber<Void> f = new Fiber<>(() -> {
+            throw new RuntimeException("foo");
+        });
         Fiber.setDefaultUncaughtExceptionHandler((f1, e) -> t.set(e));
 
         f.start();

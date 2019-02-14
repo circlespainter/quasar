@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
 data class Msg(val txt: String, val from: ActorRef<Any?>)
 
 class Ping(val n: Int) : Actor() {
-    @Suspendable override fun doRun() {
+    override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
         for(i in 1..n) {
             pong.send(Msg("ping", self()))          // Fiber-blocking
@@ -52,7 +52,7 @@ class Ping(val n: Int) : Actor() {
 }
 
 class Pong : Actor() {
-    @Suspendable override fun doRun() {
+    override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example
             receive(1000, TimeUnit.MILLISECONDS) {  // Fiber-blocking
@@ -65,7 +65,7 @@ class Pong : Actor() {
                         println("Pong received 'finished', exiting")
                         return                      // Non-local return, exit actor
                     }
-                    is Timeout -> {
+                    is Companion.Timeout -> {
                         println("Pong timeout in 'receive', exiting")
                         return                      // Non-local return, exit actor
                     }
