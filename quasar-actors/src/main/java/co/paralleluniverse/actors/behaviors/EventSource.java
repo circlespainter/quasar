@@ -1,19 +1,20 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
+
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 
 /**
@@ -38,7 +39,7 @@ public class EventSource<Event> extends Behavior {
      * @param handler the handler
      * @return {@code true} if the handler has been successfully added to the actor, or {@code false} if the handler was already registered.
      */
-    public boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+    public boolean addHandler(EventHandler<Event> handler) throws InterruptedException {
         if (isInActor())
             return EventSourceActor.<Event>currentEventSourceActor().addHandler(handler);
 
@@ -51,7 +52,7 @@ public class EventSource<Event> extends Behavior {
      * @param handler
      * @return {@code true} if the handler was registered and successfully removed, or {@code false} if the handler was not registered.
      */
-    public boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+    public boolean removeHandler(EventHandler<Event> handler) throws InterruptedException {
         if (isInActor())
             return EventSourceActor.<Event>currentEventSourceActor().removeHandler(handler);
 
@@ -63,7 +64,7 @@ public class EventSource<Event> extends Behavior {
      *
      * @param event the event
      */
-    public void notify(Event event) throws SuspendExecution {
+    public void notify(Event event) {
         send(event);
     }
 

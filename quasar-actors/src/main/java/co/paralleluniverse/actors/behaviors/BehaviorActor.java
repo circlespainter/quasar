@@ -1,24 +1,19 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorLoader;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.ShutdownMessage;
+import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.util.Exceptions;
 import org.slf4j.Logger;
 
@@ -40,7 +35,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * @param strand        this actor's strand.
      * @param mailboxConfig this actor's mailbox settings.
      */
-    protected BehaviorActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    protected BehaviorActor(String name, Initializer initializer, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.initializer = ActorLoader.getReplacementFor(initializer);
         this.run = true;
@@ -64,12 +59,12 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
     }
 
     @Override
-    public Behavior spawn(StrandFactory sf) {
+    public Behavior spawn(co.paralleluniverse.strands.StrandFactory sf) {
         return (Behavior) super.spawn(sf);
     }
 
     @Override
-    public Behavior spawn(FiberFactory ff) {
+    public Behavior spawn(co.paralleluniverse.fibers.FiberFactory ff) {
         return (Behavior) super.spawn(ff);
     }
 
@@ -86,6 +81,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     /**
      * Creates a new behavior actor.
      *
@@ -183,7 +179,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * This method is called by the {@link BehaviorActor} at the beginning of {@link #doRun()}.
      * By default, this method calls {@link #init()}.
      */
-    protected void onStart() throws InterruptedException, SuspendExecution {
+    protected void onStart() throws InterruptedException {
         init();
     }
 
@@ -191,7 +187,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * This method is called by the {@link BehaviorActor} at the end of {@link #doRun()}.
      * By default, this method calls {@link #terminate(Throwable) terminate()}.
      */
-    protected void onTerminate(Throwable cause) throws InterruptedException, SuspendExecution {
+    protected void onTerminate(Throwable cause) throws InterruptedException {
         log().info("{} shutting down.", this);
         terminate(cause);
     }
@@ -200,7 +196,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * Called by {@link #onStart() onStart} to initialize the actor. By default, this method calls {@link #getInitializer() initializer}.{@link Initializer#init() init()}
      * if the initializer in non-null; otherwise it does nothing.
      */
-    protected void init() throws InterruptedException, SuspendExecution {
+    protected void init() throws InterruptedException {
         if (initializer != null)
             initializer.init();
     }
@@ -209,7 +205,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * Called by {@link #onTerminate(Throwable) onTerminate} to terminate the actor. By default, this method calls {@link #getInitializer() initializer}.{@link Initializer#terminate(java.lang.Throwable) terminate}
      * if the initializer in non-null; otherwise it does nothing.
      */
-    protected void terminate(Throwable cause) throws SuspendExecution {
+    protected void terminate(Throwable cause) {
         if (initializer != null)
             initializer.terminate(cause);
     }
@@ -226,7 +222,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      *       handleMessage(receive());
      * }</pre>
      */
-    protected void behavior() throws InterruptedException, SuspendExecution {
+    protected void behavior() throws Exception {
         while (isRunning()) {
             final Object m1 = receive();
             handleMessage(m1);
@@ -239,11 +235,11 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      *
      * @param message the message received by the actor.
      */
-    protected void handleMessage(Object message) throws InterruptedException, SuspendExecution {
+    protected void handleMessage(Object message) throws InterruptedException {
     }
 
     @Override
-    protected void checkCodeSwap() throws SuspendExecution {
+    protected void checkCodeSwap() {
         verifyInActor();
         Initializer _initializer = ActorLoader.getReplacementFor(initializer);
         if (_initializer != initializer)
@@ -282,7 +278,7 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      * }</pre>
      */
     @Override
-    protected Void doRun() throws InterruptedException, SuspendExecution {
+    protected Void doRun() throws InterruptedException {
         try {
             onStart();
             behavior();

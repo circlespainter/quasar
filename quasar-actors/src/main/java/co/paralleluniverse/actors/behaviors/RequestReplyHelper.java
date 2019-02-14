@@ -13,20 +13,11 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.Actor;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorImpl;
-import co.paralleluniverse.actors.ActorRefDelegate;
-import co.paralleluniverse.actors.ActorUtil;
-import co.paralleluniverse.actors.ExitMessage;
-import co.paralleluniverse.actors.LifecycleMessage;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MailboxConfig;
-import co.paralleluniverse.actors.MessageProcessor;
-import co.paralleluniverse.actors.SelectiveReceiveHelper;
+import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
+
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -100,7 +91,7 @@ public final class RequestReplyHelper {
      *                              or if a {@link #setDefaultTimeout(long, TimeUnit) default timeout} has been set and has expired.
      * @throws InterruptedException
      */
-    public static <V, M extends RequestMessage<V>> V call(ActorRef<? super M> actor, M m) throws InterruptedException, SuspendExecution {
+    public static <V, M extends RequestMessage<V>> V call(ActorRef<? super M> actor, M m) throws InterruptedException {
         Long timeout = null;
         try {
             timeout = defaultTimeout.get();
@@ -139,7 +130,7 @@ public final class RequestReplyHelper {
      * @throws TimeoutException     if the timeout expires before a response is received from the actor.
      * @throws InterruptedException
      */
-    public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
         assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
         if (m.getFrom() == null || LocalActor.isInstance(m.getFrom(), TempActor.class))
@@ -171,7 +162,7 @@ public final class RequestReplyHelper {
             actor.sendSync(m);
             final ResponseMessage response = (ResponseMessage) helper.receive(timeout, unit, new MessageProcessor<Object, Object>() {
                 @Override
-                public Object process(Object m) throws SuspendExecution, InterruptedException {
+                public Object process(Object m) {
                     return (m instanceof ResponseMessage && id.equals(((ResponseMessage) m).getId())) ? m : null;
                 }
             });
@@ -212,7 +203,7 @@ public final class RequestReplyHelper {
      * @throws TimeoutException     if the timeout expires before a response is received from the actor.
      * @throws InterruptedException
      */
-    public static <V> V call(final ActorRef actor, RequestMessage<V> m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
+    public static <V> V call(final ActorRef actor, RequestMessage<V> m, Timeout timeout) throws TimeoutException, InterruptedException {
         return call(actor, m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -227,7 +218,7 @@ public final class RequestReplyHelper {
      * @param req    the request we're responding to
      * @param result the result of the request
      */
-    public static <V> void reply(RequestMessage<V> req, V result) throws SuspendExecution {
+    public static <V> void reply(RequestMessage<V> req, V result) {
         req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
     }
 
@@ -242,7 +233,7 @@ public final class RequestReplyHelper {
      * @param req the request we're responding to
      * @param e   the error the request has caused
      */
-    public static void replyError(RequestMessage<?> req, Throwable e) throws SuspendExecution {
+    public static void replyError(RequestMessage<?> req, Throwable e) {
         req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
     }
 
@@ -257,11 +248,11 @@ public final class RequestReplyHelper {
 
     private static class TempActor extends Actor<Object, Void> {
         TempActor() {
-            super(Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW));
+            super(co.paralleluniverse.strands.Strand.currentStrand(), null, new MailboxConfig(5, OverflowPolicy.THROW));
         }
 
         @Override
-        protected Void doRun() throws InterruptedException, SuspendExecution {
+        protected Void doRun() throws InterruptedException {
             throw new AssertionError();
         }
 

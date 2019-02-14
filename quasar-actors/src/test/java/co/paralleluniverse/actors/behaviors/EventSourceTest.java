@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -18,20 +18,20 @@ import co.paralleluniverse.actors.ActorRegistry;
 import co.paralleluniverse.actors.LocalActor;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Exceptions;
-
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
-import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 import org.mockito.InOrder;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 /**
- *
  * @author pron
  */
 public final class EventSourceTest {
@@ -55,13 +55,10 @@ public final class EventSourceTest {
     }
 
     private <T extends Actor<Message, V>, Message, V> T spawnActor(T actor) {
-        final Fiber fiber = new Fiber<>(actor);
-        fiber.setUncaughtExceptionHandler(new Strand.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Strand s, Throwable e) {
-                e.printStackTrace();
-                throw Exceptions.rethrow(e);
-            }
+        final co.paralleluniverse.fibers.Fiber fiber = new co.paralleluniverse.fibers.Fiber<>(actor);
+        fiber.setUncaughtExceptionHandler((s, e) -> {
+            e.printStackTrace();
+            throw Exceptions.rethrow(e);
         });
         fiber.start();
         return actor;
@@ -111,8 +108,8 @@ public final class EventSourceTest {
 
     private static final class BlockingStringEventHandler implements EventHandler<String> {
         @Override
-        public final void handleEvent(String s) throws SuspendExecution, InterruptedException {
-            Fiber.sleep(10);
+        public final void handleEvent(String s) throws InterruptedException {
+            co.paralleluniverse.fibers.Fiber.sleep(10);
         }
     }
 
@@ -163,7 +160,7 @@ public final class EventSourceTest {
     public final void testRegistration() throws Exception {
         final EventSource<String> es = new EventSourceActor<String>() {
             @Override
-            protected final void init() throws SuspendExecution, InterruptedException {
+            protected final void init() {
                 // Strand.sleep(1000);
                 register("test1");
             }

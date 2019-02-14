@@ -17,19 +17,22 @@ import co.paralleluniverse.strands.channels.ReceivePort
 import co.paralleluniverse.strands.channels.SelectAction
 import co.paralleluniverse.strands.channels.Selector
 import co.paralleluniverse.strands.channels.SendPort
+import java.util.concurrent.Callable
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 /**
  * @author circlespainter
  */
-@Suspendable fun <T> fiber(start: Boolean = true, name: String? = null, scheduler: FiberScheduler? = null, stackSize: Int = -1, block: () -> T): Fiber<T> {
-    val sc = (SuspendableCallable<T> @Suspendable { block() })
+fun <T> fiber(start: Boolean = true, name: String? = null, scheduler: Executor? = null, block: () -> T): co.paralleluniverse.fibers.Fiber<T> {
+    val sc = (Callable<T> { block() })
     val ret =
         if (scheduler != null)
-            Fiber(name, scheduler, stackSize, sc)
+            co.paralleluniverse.fibers.Fiber(name, scheduler, sc)
         else
-            Fiber(name, stackSize, sc)
+            co.paralleluniverse.fibers.Fiber(name, sc)
     if (start) ret.start()
     return ret
 }
@@ -47,23 +50,23 @@ class Receive<M>(receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(rec
 }
 class Send<out M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
-@Suspendable fun <R> select(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
+fun <R> select(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     @Suppress("UNCHECKED_CAST")
     val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()} as List<SelectAction<Any?>>)
-    if (sa != null) {
+    return if (sa != null) {
         val sOp: SelectOp<Any?> = actions[sa.index()]
         when (sOp) {
             is Receive<Any?> -> sOp.msg = sa.message()
         }
-        return b(sOp)
+        b(sOp)
     } else
-        return b(null)
+        b(null)
 }
 // TODO With Java 7 compiler (unsupported as of Kotlin 1.1) the bytecode seemingly references the wrong method w.r.t. the ones found by instrumentation!
-@Suspendable fun <R> select(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R = select(actions.toList(), b)
-@Suspendable fun <R> select(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
+fun <R> select(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R = select(actions.toList(), b)
+fun <R> select(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
-@Suppress("unused") @Suspendable fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
+@Suppress("unused") fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)
 
 
@@ -98,7 +101,7 @@ private class FiberLockedLazyImpl<out T>(initializer: () -> T, lock: Lock? = nul
     private val lock = lock ?: ReentrantLock()
 
     override val value: T
-        @Suspendable get() {
+        get() {
             val _v1 = _value
             if (_v1 !== UNINITIALIZED_VALUE) {
                 @Suppress("UNCHECKED_CAST")

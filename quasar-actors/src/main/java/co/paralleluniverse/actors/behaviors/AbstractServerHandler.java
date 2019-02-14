@@ -29,7 +29,7 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation does nothing</b>
      */
     @Override
-    public void init() throws SuspendExecution {
+    public void init() {
     }
 
     /**
@@ -38,7 +38,7 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation throws an {@link UnsupportedOperationException}.</b>
      */
     @Override
-    public V handleCall(ActorRef<?> from, Object id, CallMessage m) throws SuspendExecution {
+    public V handleCall(ActorRef<?> from, Object id, CallMessage m) {
         throw new UnsupportedOperationException(m.toString());
     }
 
@@ -48,7 +48,7 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation does nothing</b>
      */
     @Override
-    public void handleCast(ActorRef<?> from, Object id, CastMessage m) throws SuspendExecution {
+    public void handleCast(ActorRef<?> from, Object id, CastMessage m) {
     }
 
     /**
@@ -57,7 +57,7 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation does nothing</b>
      */
     @Override
-    public void handleInfo(Object m) throws SuspendExecution {
+    public void handleInfo(Object m) {
     }
 
     /**
@@ -66,7 +66,7 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation does nothing</b>
      */
     @Override
-    public void handleTimeout() throws SuspendExecution {
+    public void handleTimeout() {
     }
 
     /**
@@ -75,6 +75,6 @@ public class AbstractServerHandler<CallMessage, V, CastMessage> implements Serve
      * <b>This implementation does nothing</b>
      */
     @Override
-    public void terminate(Throwable cause) throws SuspendExecution {
+    public void terminate(Throwable cause) {
     }
 }

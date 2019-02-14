@@ -29,8 +29,7 @@ public interface MessageProcessor<Message, T> {
      * 
      * @param m The message
      * @return A non-null value if the message is selected; {@code null} if the message is to be skipped.
-     * @throws SuspendExecution
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
-    T process(Message m) throws SuspendExecution, InterruptedException;
+    T process(Message m) throws InterruptedException;
 }

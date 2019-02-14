@@ -27,17 +27,17 @@ import java.lang.reflect.InvocationTargetException;
  * @author pron
  */
 public abstract class ActorRegistry {
-    public abstract <Message> void register(Actor<Message, ?> actor, ActorRef<Message> actorRef) throws SuspendExecution;
+    public abstract <Message> void register(Actor<Message, ?> actor, ActorRef<Message> actorRef);
 
     public abstract <Message> void unregister(Actor<Message, ?> actor, ActorRef<Message> actorRef);
 
-    public abstract ActorRef<?> getActor(String name) throws InterruptedException, SuspendExecution;
+    public abstract ActorRef<?> getActor(String name) throws InterruptedException;
 
-    public abstract ActorRef<?> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution;
+    public abstract ActorRef<?> getActor(String name, long timeout, TimeUnit unit) throws InterruptedException;
 
-    public abstract ActorRef<?> tryGetActor(String name) throws SuspendExecution;
+    public abstract ActorRef<?> tryGetActor(String name);
 
-    public abstract <T extends ActorRef<?>> T getOrRegisterActor(String name, Callable<T> factory) throws SuspendExecution;
+    public abstract <T extends ActorRef<?>> T getOrRegisterActor(String name, Callable<T> factory);
 
     public abstract void shutdown();
 

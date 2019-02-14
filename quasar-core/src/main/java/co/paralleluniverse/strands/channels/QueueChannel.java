@@ -18,7 +18,6 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.DelegatingEquals;
 import co.paralleluniverse.common.util.Objects;
-import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.OwnedSynchronizer;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
@@ -445,9 +444,6 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         return "Channel{" + "sync: " + sync + ", queue: " + Objects.systemToString(queue) + ", capacity: " + capacity() + '}';
     }
 
-    protected Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteChannelProxyFactoryService.create(this, null);
-    }
     ////////////////////////////
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 

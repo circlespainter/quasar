@@ -56,7 +56,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}
      * @throws InterruptedException
      */
-    public final <T> T receive(MessageProcessor<? super Message, T> proc) throws SuspendExecution, InterruptedException {
+    public final <T> T receive(MessageProcessor<? super Message, T> proc) throws InterruptedException {
         try {
             return receive(0, null, proc);
         } catch (TimeoutException e) {
@@ -80,7 +80,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<? super Message, T> proc) throws TimeoutException, InterruptedException {
         assert Actor.currentActor() == null || Actor.currentActor() == actor;
 
         final Mailbox<Object> mailbox = actor.mailbox();
@@ -183,7 +183,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS, proc);
     }
 
@@ -205,7 +205,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
             return receive(0, TimeUnit.NANOSECONDS, proc);
         } catch (TimeoutException e) {
             throw new AssertionError(e);
-        } catch (SuspendExecution | InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new AssertionError();
         }
     }
@@ -239,10 +239,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @param unit    timeout's time unit.
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws InterruptedException, TimeoutException {
         return receive(timeout, unit, ofType(type));
     }
 
@@ -257,10 +256,9 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws InterruptedException, TimeoutException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS, type);
     }
 
@@ -276,7 +274,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
      * @return The next message of the wanted type.
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(final Class<M> type) throws SuspendExecution, InterruptedException {
+    public final <M extends Message> M receive(final Class<M> type) throws InterruptedException {
         try {
             return receive(0, null, type);
         } catch (TimeoutException ex) {

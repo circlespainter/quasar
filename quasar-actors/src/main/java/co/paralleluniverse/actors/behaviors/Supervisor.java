@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -16,10 +16,11 @@ package co.paralleluniverse.actors.behaviors;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
 
 /**
  * An interface to a {@link SupervisorActor}.
@@ -46,7 +47,7 @@ public class Supervisor extends Behavior {
      * @return the actor (possibly after it has been started by the supervisor).
      * @throws InterruptedException
      */
-    public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws SuspendExecution, InterruptedException {
+    public final <T extends ActorRef<M>, M> T addChild(ChildSpec spec) throws InterruptedException {
         if (isInActor())
             return (T) SupervisorActor.currentSupervisor().addChild(spec);
 
@@ -60,10 +61,9 @@ public class Supervisor extends Behavior {
      *
      * @param id the child's {@link ChildSpec#getId() id} in the supervisor.
      * @return the child, if found; {@code null} if the child was not found
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <T extends ActorRef<M>, M> T getChild(Object id) throws SuspendExecution, InterruptedException {
+    public final <T extends ActorRef<M>, M> T getChild(Object id) throws InterruptedException {
         if (isInActor())
             return (T) SupervisorActor.currentSupervisor().getChild(id);
 
@@ -76,15 +76,15 @@ public class Supervisor extends Behavior {
      * an actor constructor, constructed by the supervisor.
      *
      * @return the children {@link ActorRef}s.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final List<? extends ActorRef<?>> getChildren() throws SuspendExecution, InterruptedException {
+    public final List<? extends ActorRef<?>> getChildren() throws InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().getChildren();
 
         return (List) call(this, new GetChildrenMessage(RequestReplyHelper.from(), null));
     }
+
     /**
      * Removes a child actor from the supervisor.
      * This method does not block when called from within the Supervisor's context, so, in particular, it may be called by
@@ -95,7 +95,7 @@ public class Supervisor extends Behavior {
      * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
      * @throws InterruptedException
      */
-    public final boolean removeChild(Object id, boolean terminate) throws SuspendExecution, InterruptedException {
+    public final boolean removeChild(Object id, boolean terminate) throws InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().removeChild(id, terminate);
 
@@ -112,7 +112,7 @@ public class Supervisor extends Behavior {
      * @return {@code true} if the actor has been successfully removed from the supervisor; {@code false} if the child was not found.
      * @throws InterruptedException
      */
-    public boolean removeChild(ActorRef<?> actor, boolean terminate) throws SuspendExecution, InterruptedException {
+    public boolean removeChild(ActorRef<?> actor, boolean terminate) throws InterruptedException {
         if (isInActor())
             return SupervisorActor.currentSupervisor().removeChild(actor, terminate);
 
@@ -138,7 +138,9 @@ public class Supervisor extends Behavior {
          * The child actor should never be restarted.
          */
         TEMPORARY
-    };
+    }
+
+    ;
 
     /**
      * Describes a child actor's configuration in a supervisor
@@ -178,8 +180,7 @@ public class Supervisor extends Behavior {
         /**
          * A new spec.
          * This constructor takes an {@link ActorRef} to the actor rather than an {@link ActorBuilder}. If the {@link ActorRef} also implements
-         * {@link ActorBuilder} it will be used to restart the actor. {@code ActorRef}s to local actors implement {@link ActorBuilder} using
-         * {@code Actor}'s {@link Actor#reinstantiate() reinstantiate} method.
+         * {@link ActorBuilder} it will be used to restart the actor. {@code ActorRef}s to local actors implement {@link ActorBuilder}.
          *
          * @param id               the child's (optional) identifier (name)
          * @param mode             the child's {@link ChildMode mode}.

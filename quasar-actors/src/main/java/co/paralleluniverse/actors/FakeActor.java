@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.strands.channels.SendPort;
 import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -70,7 +71,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
      * @param message
      */
     @Override
-    protected void internalSend(Object message) throws SuspendExecution {
+    protected void internalSend(Object message) {
         record(1, "ActorRef", "send", "Sending %s -> %s", message, this);
         Message msg = filterMessage(message);
         if (msg == null)
@@ -78,7 +79,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
         try {
             mailbox().send(message);
         } catch (InterruptedException e) {
-            Strand.currentStrand().interrupt();
+            co.paralleluniverse.strands.Strand.currentStrand().interrupt();
         }
     }
 
@@ -127,7 +128,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
 
     @Override
     protected void removeObserverListeners(ActorRef actor) {
-        for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext();) {
+        for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext(); ) {
             LifecycleListener lifecycleListener = it.next();
             if (lifecycleListener instanceof ActorLifecycleListener)
                 if (((ActorLifecycleListener) lifecycleListener).getObserver().equals(actor))
@@ -137,7 +138,7 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
 
     /**
      * Makes this fake actor watch another actor.
-     *
+     * <p>
      * When the other actor dies, this actor receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
      * unlike the case where it is received as a result of a linked actor's death.
@@ -194,10 +195,5 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
         // avoid memory leaks:
         lifecycleListeners.clear();
         observed.clear();
-    }
-
-    /////////// Serialization ///////////////////////////////////
-    protected final Object writeReplace() throws java.io.ObjectStreamException {
-        return RemoteActorProxyFactoryService.create(ref(), null);
     }
 }

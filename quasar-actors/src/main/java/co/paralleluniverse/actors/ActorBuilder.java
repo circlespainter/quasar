@@ -24,5 +24,5 @@ public interface ActorBuilder<Message, V> {
      *
      * @return a newly created actor.
      */
-    Actor<Message, V> build() throws SuspendExecution;
+    Actor<Message, V> build();
 }

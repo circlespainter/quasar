@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -15,14 +15,16 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
-
+import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
@@ -33,8 +35,6 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
-import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
-import org.cliffc.high_scale_lib.NonBlockingHashMapLong.IteratorLong;
 
 /**
  *
@@ -48,8 +48,8 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     }
     private final String mbeanName;
     private boolean registered;
-    private final NonBlockingHashMapLong<ActorRef<?>> actors = new NonBlockingHashMapLong<ActorRef<?>>();
-    private final NonBlockingHashMapLong<SmallActorMonitor> watchedActors = new NonBlockingHashMapLong<SmallActorMonitor>();
+    private final Map<Long, ActorRef<?>> actors = new ConcurrentHashMap<>();
+    private final Map<Long, SmallActorMonitor> watchedActors = new ConcurrentHashMap<>();
     private long lastCollectTime;
     private final Counter activeCount = new Counter();
 
@@ -143,11 +143,10 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     @Override
     public long[] getAllActorIds() {
         int size = actors.size();
-        IteratorLong it = (IteratorLong) actors.keys();
         long[] ids = new long[size];
         int i = 0;
-        while (it.hasNext() && i < size) {
-            ids[i] = it.nextLong();
+        for (long id : actors.keySet()) {
+            ids[i] = id;
             i++;
         }
         if (i < size)

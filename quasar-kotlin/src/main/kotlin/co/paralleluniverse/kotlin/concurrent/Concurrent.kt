@@ -14,6 +14,7 @@
 package co.paralleluniverse.kotlin.concurrent
 
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Executes the given [action] under the read lock of this lock.

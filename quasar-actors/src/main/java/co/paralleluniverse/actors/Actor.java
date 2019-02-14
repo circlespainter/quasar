@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -17,22 +17,16 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
-import co.paralleluniverse.fibers.FiberWriter;
+import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.Joinable;
-import co.paralleluniverse.io.serialization.ByteArraySerializer;
-import co.paralleluniverse.io.serialization.Serialization;
+import co.paralleluniverse.strands.StrandFactory;
 import co.paralleluniverse.strands.Stranded;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
+
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -44,7 +38,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  * @param <V>       The actor's return value type. Use {@link Void} if the actor does not return a result.
  * @author pron
  */
-public abstract class Actor<Message, V> extends ActorImpl<Message> implements SuspendableCallable<V>, ActorBuilder<Message, V>, Joinable<V>, Stranded, ReceivePort<Message> {
+public abstract class Actor<Message, V> extends ActorImpl<Message> implements Callable<V>, ActorBuilder<Message, V>, Joinable<V>, Stranded, ReceivePort<Message> {
     /**
      * Creates a new actor.
      * The actor must have a public constructor that can take the given parameters.
@@ -72,6 +66,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public static <T extends Actor<Message, V>, Message, V> T newActor(ActorSpec<T, Message, V> spec) {
         return spec.build();
     }
+
     private static final Throwable NATURAL = new Throwable();
     private static final Object DEFUNCT = new Object();
     private static final ThreadLocal<Actor> currentActor = new ThreadLocal<Actor>();
@@ -82,7 +77,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;
-    private volatile Object globalId;
     private transient volatile ActorMonitor monitor;
     private volatile boolean registered;
     private boolean hasMonitor;
@@ -92,7 +86,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private boolean migrating;
     private static final AtomicReferenceFieldUpdater<Actor, ActorRef> wrapperRefUpdater = AtomicReferenceFieldUpdater.newUpdater(Actor.class, ActorRef.class, "wrapperRef");
     private boolean forwardWatch;
-    
+
     /**
      * Creates a new actor.
      *
@@ -135,23 +129,23 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @param name          the actor name (may be {@code null}).
      * @param mailboxConfig the actor's mailbox settings; if {@code null}, the default config - unbounded mailbox - will be used.
      */
-    protected Actor(Strand strand, String name, MailboxConfig mailboxConfig) {
+    protected Actor(co.paralleluniverse.strands.Strand strand, String name, MailboxConfig mailboxConfig) {
         this(name, mailboxConfig);
         if (strand != null)
             runner.setStrand(strand);
     }
-    
+
     /**
      * <b>For use by non-Java, untyped languages only.</b>
      * <p>
      * If set to {@code true}, {@link #handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage) LifecycleMessage}
-     * will, by default, return {@link ExitMessage}s from {@link #watch(co.paralleluniverse.actors.ActorRef) watched} 
+     * will, by default, return {@link ExitMessage}s from {@link #watch(co.paralleluniverse.actors.ActorRef) watched}
      * actors to be returned by {@code receive}. This means that {@code receive} will return a message of
      * a type that may not be {@code Message}, and therefore this value should only be set to true in
      * untyped languages.
-     * 
+     *
      * @param value
-     * @return 
+     * @return
      */
     @Deprecated
     public Actor<Message, V> setForwardWatch(boolean value) {
@@ -203,14 +197,14 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Starts a new fiber using the given scheduler and runs the actor in it.
      * The fiber's name will be set to this actor's name.
      *
-     * @param ff the {@link FiberFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
+     * @param sf the {@link FiberFactory factory} (or {@link StrandFactory scheduler}) that will be used to create the actor's fiber.
      * @return This actors' ActorRef
      */
-    public ActorRef<Message> spawn(StrandFactory sf) {
+    public ActorRef<Message> spawn(co.paralleluniverse.strands.StrandFactory sf) {
         if (sf == null)
             return spawn();
         checkReplacement();
-        final Strand s = sf.newStrand(runner);
+        final co.paralleluniverse.strands.Strand s = sf.newStrand(runner);
         setStrand(s);
         if (getName() != null)
             s.setName(getName());
@@ -222,10 +216,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Starts a new fiber using the given scheduler and runs the actor in it.
      * The fiber's name will be set to this actor's name.
      *
-     * @param ff the {@link FiberFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
+     * @param ff the {@link FiberFactory factory} (or {@link Executor scheduler}) that will be used to create the actor's fiber.
      * @return This actors' ActorRef
      */
-    public ActorRef<Message> spawn(FiberFactory ff) {
+    public ActorRef<Message> spawn(co.paralleluniverse.fibers.FiberFactory ff) {
         if (ff == null)
             return spawn();
         checkReplacement();
@@ -241,7 +235,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public ActorRef<Message> spawn() {
         checkReplacement();
-        final Fiber f = getName() != null ? new Fiber(getName(), runner) : new Fiber(runner);
+        final co.paralleluniverse.fibers.Fiber f = getName() != null ? new co.paralleluniverse.fibers.Fiber(getName(), runner) : new co.paralleluniverse.fibers.Fiber(runner);
         f.start();
         return ref();
     }
@@ -254,17 +248,17 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public ActorRef<Message> spawnThread() {
         checkReplacement();
-        Runnable runnable = Strand.toRunnable(runner);
+        Runnable runnable = co.paralleluniverse.strands.Strand.toRunnable(runner);
         Thread t = (getName() != null ? new Thread(runnable, getName()) : new Thread(runnable));
-        setStrand(Strand.of(t));
+        setStrand(co.paralleluniverse.strands.Strand.of(t));
         t.start();
         return ref();
     }
 
     @Override
-    public final V run() throws InterruptedException, SuspendExecution {
+    public final V call() throws InterruptedException {
         checkReplacement();
-        return runner.run();
+        return runner.call();
     }
 
     /**
@@ -297,7 +291,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             else
                 params[i] = type.isPrimitive() ? 0 : null;
         }
-        return new ActorSpec<Actor<Message, V>, Message, V>(ctor, params);
+        return new ActorSpec<>(ctor, params);
     }
 
     void setSpec(ActorSpec<?, Message, V> spec) {
@@ -318,7 +312,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         String className = getClass().getSimpleName();
         if (className.isEmpty())
             className = getClass().getName().substring(getClass().getPackage().getName().length() + 1);
-        final Strand strand = runner.getStrand();
+        final co.paralleluniverse.strands.Strand strand = runner.getStrand();
         final String strandName = (strand != null ? strand.getName() : "null"); // strand.getClass().getSimpleName() + '@' + strand.getId()
         return className + "@"
                 + (getName() != null ? getName() : Integer.toHexString(System.identityHashCode(this)))
@@ -341,10 +335,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Returns the actor currently running in the current strand.
      */
     public static <M, V> Actor<M, V> currentActor() {
-        final Fiber currentFiber = Fiber.currentFiber();
+        final co.paralleluniverse.fibers.Fiber currentFiber = co.paralleluniverse.fibers.Fiber.currentFiber();
         if (currentFiber == null)
             return currentActor.get();
-        final SuspendableCallable target = currentFiber.getTarget();
+        final Callable target = currentFiber.getTarget();
         if (target == null)
             return null;
         if (target instanceof Actor)
@@ -382,21 +376,22 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     @Override
-    public final void setStrand(Strand strand) {
+    public final void setStrand(co.paralleluniverse.strands.Strand strand) {
         runner.setStrand(strand);
     }
 
-    void setStrand0(Strand strand) {
+    void setStrand0(co.paralleluniverse.strands.Strand strand) {
         mailbox().setStrand(strand);
     }
 
     @Override
-    public final Strand getStrand() {
+    public final co.paralleluniverse.strands.Strand getStrand() {
         return runner.getStrand();
     }
 
     //<editor-fold desc="Mailbox methods">
     /////////// Mailbox methods ///////////////////////////////////
+
     /**
      * Returns the number of messages currently waiting in the mailbox.
      */
@@ -429,7 +424,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     @Override
-    protected final void sendSync(Message message) throws SuspendExecution {
+    protected final void sendSync(Message message) {
         record(1, "Actor", "sendSync", "Sending sync %s -> %s", message, this);
         if (Debug.isDebug() && flightRecorder != null && flightRecorder.get().recordsLevel(2))
             record(2, "Actor", "sendSync", "%s queue %s", this, getQueueLength());
@@ -462,9 +457,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @throws InterruptedException
      */
     @Override
-    public final Message receive() throws SuspendExecution, InterruptedException {
+    public final Message receive() throws InterruptedException {
         try {
-            for (;;) {
+            for (; ; ) {
                 checkThrownIn0();
                 record(1, "Actor", "receive", "%s waiting for a message", this);
                 final Object m = mailbox().receive();
@@ -492,7 +487,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @throws InterruptedException
      */
     @Override
-    public final Message receive(long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public final Message receive(long timeout, TimeUnit unit) throws InterruptedException {
         if (unit == null)
             return receive();
         if (timeout <= 0)
@@ -502,7 +497,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         final long deadline = System.nanoTime() + left;
 
         try {
-            for (;;) {
+            for (; ; ) {
                 if (flightRecorder != null)
                     record(1, "Actor", "receive", "%s waiting for a message. millis left: ", this, TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS));
                 checkThrownIn0();
@@ -540,7 +535,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @throws InterruptedException
      */
     @Override
-    public final Message receive(Timeout timeout) throws SuspendExecution, InterruptedException {
+    public final Message receive(Timeout timeout) throws InterruptedException {
         return receive(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -551,7 +546,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     @Override
     public final Message tryReceive() {
-        for (;;) {
+        for (; ; ) {
             checkThrownIn0();
             Object m = mailbox().tryReceive();
             if (m == null)
@@ -657,8 +652,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     protected final void verifyOnActorStrand() {
-        if (!Strand.currentStrand().equals(getStrand()))
-            throw new ConcurrencyException("Operation not called from within the actor's strand (" + getStrand() + ", but called in " + Strand.currentStrand() + ")");
+        if (!co.paralleluniverse.strands.Strand.currentStrand().equals(getStrand()))
+            throw new ConcurrencyException("Operation not called from within the actor's strand (" + getStrand() + ", but called in " + co.paralleluniverse.strands.Strand.currentStrand() + ")");
     }
 
     /**
@@ -671,12 +666,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /**
      * Returns the actor associated with the given strand, or {@code null} if none is.
      */
-    public static Actor getActor(Strand s) {
+    public static Actor getActor(co.paralleluniverse.strands.Strand s) {
         final ActorRunner runner;
         if (s.isFiber())
-            runner = (ActorRunner) ((Fiber) s.getUnderlying()).getTarget();
+            runner = (ActorRunner) ((co.paralleluniverse.fibers.Fiber) s.getUnderlying()).getTarget();
         else
-            runner = (ActorRunner) Strand.unwrapSuspendable(ThreadAccess.getTarget((Thread) s.getUnderlying()));
+            runner = (ActorRunner) co.paralleluniverse.strands.Strand.unwrapSuspendable(ThreadAccess.getTarget((Thread) s.getUnderlying()));
         if (runner == null)
             return null;
         return runner.getActor();
@@ -685,15 +680,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     //<editor-fold desc="Lifecycle">
     /////////// Lifecycle ///////////////////////////////////
-    final V run0() throws InterruptedException, SuspendExecution {
+    final V run0() throws Throwable {
         JMXActorsMonitor.getInstance().actorStarted(ref);
-        final Strand strand = runner.getStrand(); // runner might be nulled by running actor
+        final co.paralleluniverse.strands.Strand strand = runner.getStrand(); // runner might be nulled by running actor
         if (!strand.isFiber())
             currentActor.set(this);
         try {
-            if (this instanceof MigratingActor && globalId == null)
-                this.globalId = MigrationService.registerMigratingActor();
-
             result = doRun();
             die(null);
             return result;
@@ -702,7 +694,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         } catch (InterruptedException e) {
             if (this.exception != null) {
                 die(exception);
-                throw (RuntimeException) exception;
+                throw exception;
             }
             die(e);
             throw e;
@@ -711,7 +703,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
                 InterruptedException ie = (InterruptedException) t.getCause();
                 if (this.exception != null) {
                     die(exception);
-                    throw (RuntimeException) exception;
+                    throw exception;
                 }
                 die(ie);
                 throw ie;
@@ -736,16 +728,15 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      *
      * @return The actor's return value, which can be obtained with {@link #get() }.
      * @throws InterruptedException
-     * @throws SuspendExecution
      */
-    protected abstract V doRun() throws InterruptedException, SuspendExecution;
+    protected abstract V doRun() throws InterruptedException;
 
     /**
      * This method is called by this class during a call to any of the {@code receive} methods if a {@link LifecycleMessage} is found in the mailbox.
      * By default, if the message is an {@link ExitMessage} and its {@link ExitMessage#getWatch() watch} is {@code null}, i.e. it's a result
      * of a {@link #link(ActorRef) link} rather than a {@link #watch(ActorRef) watch}, it will throw a {@link LifecycleException}, which will,
      * in turn, cause this exception to be thrown by the call to {@code receive}.
-     *
+     * <p>
      * This method is not allowed to block. If you want to block as a result of a lifecycle message, return the message from this method
      * (rather than returning {@code null}), and have it processed by the caller to {@code receive}.
      *
@@ -771,10 +762,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Tests whether this actor has been upgraded via hot code-swapping.
      * If a new version of this actor is found, this method never returns
      * (a special {@code Error} is thrown which causes the actor to restart).
-     *
-     * @throws SuspendExecution
      */
-    protected void checkCodeSwap() throws SuspendExecution {
+    protected void checkCodeSwap() {
         if (classRef == null)
             return;
         verifyInActor();
@@ -812,7 +801,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     @Override
     protected void removeObserverListeners(ActorRef actor) {
-        for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext();) {
+        for (Iterator<LifecycleListener> it = lifecycleListeners.iterator(); it.hasNext(); ) {
             LifecycleListener lifecycleListener = it.next();
             if (lifecycleListener instanceof ActorLifecycleListener)
                 if (((ActorLifecycleListener) lifecycleListener).getObserver().equals(actor))
@@ -836,14 +825,6 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      */
     public final boolean isRegistered() {
         return registered;
-    }
-
-    Object getGlobalId() {
-        return globalId;
-    }
-
-    void setGlobalId(Object globalId) {
-        this.globalId = globalId;
     }
 
     @Override
@@ -870,10 +851,10 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             throw (RuntimeException) exception;
         }
     }
-    
+
     /**
      * Links this actor to another.
-     *
+     * <p>
      * A link is symmetrical. When two actors are linked and one of them dies, the other receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}, which, be default, throws a {@link LifecycleException}
      * as a response. The exception will be thrown by any of the {@code receive} methods.
@@ -889,7 +870,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
         this.linked(other);
         other1.linked(myRef());
-        
+
         return this;
     }
 
@@ -899,7 +880,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             observed.add(actor);
         addLifecycleListener(getActorRefImpl(actor).getLifecycleListener());
     }
-    
+
     /**
      * Un-links this actor from another. This operation is symmetric.
      *
@@ -910,14 +891,14 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final Actor unlink(ActorRef other) {
         final ActorImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other1);
-        
+
         observed.remove(other);
         removeLifecycleListener(other1.getLifecycleListener());
-        
+
         other1.unlinked(myRef());
         return this;
     }
-    
+
     @Override
     protected void unlinked(ActorRef actor) {
         observed.remove(actor);
@@ -926,7 +907,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     /**
      * Makes this actor watch another actor.
-     *
+     * <p>
      * When the other actor dies, this actor receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
      * unlike the case where it is received as a result of a linked actor's death.
@@ -971,7 +952,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * @param name the name of the actor in the registry, must be equal to the {@link #getName() actor's name} if it has one.
      * @return {@code this}
      */
-    public final Actor<Message, V> register(String name) throws SuspendExecution {
+    public final Actor<Message, V> register(String name) {
         if (getName() == null)
             setName(name);
         else if (!getName().equals(name))
@@ -980,14 +961,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     }
 
     // called by ActorRegistry
-    void preRegister(String name) throws SuspendExecution {
+    void preRegister(String name) {
         if (getName() == null)
             setName(name);
         else if (!getName().equals(name))
             throw new RegistrationException("Cannot register actor named " + getName() + " under a different name (" + name + ")");
         assert !registered;
-        if (this instanceof MigratingActor && globalId == null)
-            this.globalId = MigrationService.registerMigratingActor();
     }
 
     void postRegister() {
@@ -1000,7 +979,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      *
      * @return {@code this}
      */
-    public final Actor register() throws SuspendExecution {
+    public final Actor register() {
         if (registered)
             return this;
         record(1, "Actor", "register", "Registering actor %s as %s", this, getName());
@@ -1051,133 +1030,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             getActorRefImpl(a).removeObserverListeners(myRef());
         observed.clear();
     }
-
-    boolean isMigrating() {
-        return migrating;
-    }
-
-    /**
-     * Suspends and migrates the actor in such a way that when it is later hired, the actor is restarted
-     * (i.e., its `doRun` method will be called again and run from the top), but the current value of the actor's fields will be preserved.
-     * This method never returns.
-     */
-    public void migrateAndRestart() throws SuspendExecution {
-        record(1, "Actor", "migrateAndRestart", "Actor %s is migrating.", this);
-        verifyOnActorStrand();
-
-        this.runner = null;
-        migrating = true;
-        try {
-            preMigrate();
-            MigrationService.migrate(getGlobalId(), this, Serialization.getInstance().write(this));
-            postMigrate();
-            throw Migrate.MIGRATE;
-        } finally {
-            migrating = false;
-        }
-    }
-
-    /**
-     * Suspends and migrate the actor.
-     * This method suspends the fiber the actor is running in (and is therefore available only for actors running in fibers),
-     * so that when the actor is hired, it will continue execution from the point this method was called.
-     * This method must be called on a fiber.
-     */
-    public void migrate() throws SuspendExecution {
-        record(1, "Actor", "migrate", "Actor %s is migrating.", this);
-        verifyOnActorStrand();
-
-        migrating = true;
-        preMigrate();
-        Fiber.parkAndSerialize(new FiberWriter() {
-
-            @Override
-            public void write(Fiber fiber, ByteArraySerializer ser) {
-                final byte[] buf = ser.write(Actor.this);
-                new Fiber<Void>() {
-                    @Override
-                    protected Void run() throws SuspendExecution, InterruptedException {
-                        MigrationService.migrate(getGlobalId(), Actor.this, buf);
-                        postMigrate();
-                        return null;
-                    }
-                }.start();
-            }
-        });
-        migrating = false;
-    }
-
-    private void preMigrate() {
-        if (monitor != null) {
-            hasMonitor = true;
-            stopMonitor();
-        }
-        // must be done before migration because this sets up a local listener (which will be removed when migrating)
-        ref.setImpl(RemoteActorProxyFactoryService.create(ref, getGlobalId()));
-    }
-
-    private void postMigrate() {
-        assert ref.getImpl() instanceof RemoteActor;
-
-        // copy messages already in the mailbox
-        // TODO: this might change the message order, as new messages are coming in
-        final Mailbox mbox = mailbox();
-        for (;;) {
-            Object m = mbox.tryReceive();
-            if (m == null)
-                break;
-            // System.out.println("XXXXXXX ---> " + m);
-            ref.getImpl().internalSendNonSuspendable(m);
-        }
-    }
-
-    /**
-     * Hires and resumes/restarts a migrated actor.
-     *
-     * @param ref the {@link ActorRef} of the migrated actor.
-     * @return the ref
-     */
-    public static <M> ActorRef<M> hire(ActorRef<M> ref) throws SuspendExecution {
-        return hire(ref, DefaultFiberScheduler.getInstance());
-    }
-
-    /**
-     * Hires and resumes/restarts a migrated actor.
-     *
-     * @param ref       the {@link ActorRef} of the migrated actor.
-     * @param scheduler the {@link FiberScheduler} on which to schedule this actor,
-     *                  or {@code null} to schedule the actor on a thread.
-     * @return the ref
-     */
-    public static <M> ActorRef<M> hire(ActorRef<M> ref, FiberScheduler scheduler) throws SuspendExecution {
-        Actor actor = MigrationService.hire(ref, Fiber.getFiberSerializer());
-
-        final Fiber<?> fiber = actor.runner != null ? (Fiber) actor.getStrand() : null;
-        actor.setRef(ref);
-        if (fiber == null)
-            actor.runner = new ActorRunner<>(ref);
-        // actor.runner = fiber != null ? (ActorRunner) fiber.getTarget() : new ActorRunner<>(ref);
-
-        actor.ref.setImpl(actor);
-        assert ref == actor.ref : ref + " - " + actor.ref;
-
-        if (fiber != null)
-            Fiber.unparkDeserialized(fiber, scheduler);
-        else {
-            if (scheduler != null) {
-                final FiberFactory ff = scheduler;
-                actor.spawn(ff);
-            } else
-                actor.spawnThread();
-        }
-        return ref;
-    }
     //</editor-fold>
 
     //<editor-fold desc="ActorBuilder">
     /////////// ActorBuilder ///////////////////////////////////
     @Override
-    public final Actor<Message, V> build() throws SuspendExecution {
+    public final Actor<Message, V> build() {
         if (!isDone())
             throw new IllegalStateException("Actor " + this + " isn't dead. Cannot build a copy");
 
@@ -1193,28 +1051,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         return newInstance;
     }
     //</editor-fold>
-
-    //<editor-fold desc="Serialization">
-    /////////// Serialization ///////////////////////////////////
-    protected final Object writeReplace() throws java.io.ObjectStreamException {
-        if (migrating)
-            return this;
-        final RemoteActor<Message> remote = RemoteActorProxyFactoryService.create(ref(), getGlobalId());
-        // remote.startReceiver();
-        return remote;
-    }
-
-    protected Object readResolve() throws java.io.ObjectStreamException {
-        this.classRef = ActorLoader.getClassRef(getClass());
-        mailbox().setActor(this);
-        if (hasMonitor)
-            monitor();
-        return this;
-    }
-    //</editor-fold>
-
     //<editor-fold defaultstate="collapsed" desc="Monitoring">
     /////////// Monitoring ///////////////////////////////////
+
     /**
      * Starts a monitor that exposes information about this actor via a JMX MBean.
      *

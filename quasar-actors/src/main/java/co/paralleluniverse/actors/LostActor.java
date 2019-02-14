@@ -41,7 +41,7 @@ class LostActor extends ActorImpl<Object> {
     }
 
     @Override
-    protected void internalSend(Object message) throws SuspendExecution {
+    protected void internalSend(Object message) {
         record(1, "LostActor", "internalSend", "Message: %s" , message);
     }
 

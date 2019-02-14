@@ -18,6 +18,7 @@ import co.paralleluniverse.actors.ExitMessage
 import co.paralleluniverse.actors.KotlinActorSupport
 import co.paralleluniverse.actors.LifecycleMessage
 import co.paralleluniverse.strands.queues.QueueIterator
+import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.actors.Actor as JActor
 
@@ -72,7 +73,14 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
         val it: QueueIterator<Any> = mailboxQueue().iterator()
         while (true) {
             if (flightRecorder != null)
-                record(1, "KotlinActor", "receive", "%s waiting for a message. %s", this, if (timeout > 0) "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) else "")
+                record(
+                    1,
+                    "KotlinActor",
+                    "receive",
+                    "%s waiting for a message. %s",
+                    this,
+                    if (timeout > 0) "millis left: " + TimeUnit.MILLISECONDS.convert(left, TimeUnit.NANOSECONDS) else ""
+                )
 
             mailbox.lock()
 
@@ -147,7 +155,7 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
 fun spawn(a: JActor<*, *>): ActorRef<Any?> {
     @Suppress("UNCHECKED_CAST")
-    Fiber(a as SuspendableCallable<Any>).start()
+    co.paralleluniverse.fibers.Fiber(a as Callable<Any>).start()
     @Suppress("UNCHECKED_CAST")
     return a.ref() as ActorRef<Any?>
 }

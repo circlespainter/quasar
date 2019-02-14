@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.fibers.Joinable;
 import co.paralleluniverse.strands.Stranded;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,19 +26,19 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
+class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable, Callable<V> {
     private /*final*/ transient ActorRef<?> actorRef;
     private volatile Actor<?, V> actor;
-    private Strand strand;
+    private co.paralleluniverse.strands.Strand strand;
 
     ActorRunner(ActorRef<?> actorRef) {
         this.actorRef = actorRef;
     }
 
     @Override
-    public V run() throws InterruptedException {
+    public V call() {
         if (strand == null)
-            setStrand(Strand.currentStrand());
+            setStrand(co.paralleluniverse.strands.Strand.currentStrand());
         if (actor == null) {
             this.actor = (Actor<?, V>) actorRef.getImpl();
             assert actor != null && actor == actorRef.getImpl();
@@ -56,6 +57,8 @@ class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
                 }
             } catch (ActorAbort e) {
                 return null;
+            } catch (Throwable t)  {
+                throw new RuntimeException(t);
             }
         }
     }
@@ -65,7 +68,7 @@ class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
     }
 
     @Override
-    public void setStrand(Strand strand) {
+    public void setStrand(co.paralleluniverse.strands.Strand strand) {
         if (strand == this.strand)
             return;
         if (this.strand != null)
@@ -80,12 +83,12 @@ class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
     }
 
     @Override
-    public Strand getStrand() {
+    public co.paralleluniverse.strands.Strand getStrand() {
         return strand;
     }
 
     public final boolean isStarted() {
-        return strand != null && strand.getState().compareTo(Strand.State.STARTED) >= 0;
+        return strand != null && strand.isAlive();
     }
 
     @Override
@@ -100,11 +103,11 @@ class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
 
     @Override
     public final V get() throws InterruptedException, ExecutionException {
-        final Strand s = strand;
+        final co.paralleluniverse.strands.Strand s = strand;
         if (s == null)
             throw new IllegalStateException("Actor strand not set (not started?)");
-        if (s instanceof Fiber)
-            return ((Fiber) s).get();
+        if (s instanceof co.paralleluniverse.fibers.Fiber)
+            return ((co.paralleluniverse.fibers.Fiber<V>) s).get();
         else {
             s.join();
             return actor.getResult();
@@ -113,8 +116,8 @@ class ActorRunner<V> implements Stranded, Joinable<V>, java.io.Serializable {
 
     @Override
     public final V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        if (strand instanceof Fiber)
-            return ((Fiber<V>) strand).get(timeout, unit);
+        if (strand instanceof co.paralleluniverse.fibers.Fiber)
+            return ((co.paralleluniverse.fibers.Fiber<V>) strand).get(timeout, unit);
         else {
             strand.join(timeout, unit);
             return actor.getResult();

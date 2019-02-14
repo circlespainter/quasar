@@ -68,7 +68,7 @@ public final class LocalActor {
         return actorOf(actor).mailbox();
     }
 
-    public static Strand getStrand(ActorRef<?> actor) {
+    public static co.paralleluniverse.strands.Strand getStrand(ActorRef<?> actor) {
         return actorOf(actor).getStrand();
     }
 
@@ -88,11 +88,11 @@ public final class LocalActor {
         actorOf(actor).stopMonitor();
     }
 
-    public static void register(ActorRef<?> actor, String name) throws SuspendExecution {
+    public static void register(ActorRef<?> actor, String name) {
         actorOf(actor).register(name);
     }
 
-    public static void register(ActorRef<?> actor) throws SuspendExecution {
+    public static void register(ActorRef<?> actor) {
         actorOf(actor).register();
     }
 

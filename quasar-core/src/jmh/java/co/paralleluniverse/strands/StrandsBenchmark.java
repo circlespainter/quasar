@@ -18,10 +18,7 @@ import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class StrandsBenchmark {
     static final boolean HEAVYWEIGHT = false;
@@ -86,44 +83,39 @@ public class StrandsBenchmark {
 
         final Channel<String> lastChannel = c;
 
-        Strand ringLeader = newStrand(heavyweight, new SuspendableRunnable() {
+        Strand ringLeader = newStrand(heavyweight, (Callable) () -> {
+            lastChannel.send("number:"); // start things off
 
-            @Override
-            public void run() throws SuspendExecution, InterruptedException {
-                lastChannel.send("number:"); // start things off
-
-                String m = null;
-                for (int i = 0; i < rounds; i++) {
-                    m = firstChannel.receive();
-                    lastChannel.send(createMessage(m));
-                }
-                lastChannel.close();
-                blackHole = m;
+            String m = null;
+            for (int i = 0; i < rounds; i++) {
+                m = firstChannel.receive();
+                lastChannel.send(createMessage(m));
             }
+            lastChannel.close();
+            blackHole = m;
+            return null;
         });
         return ringLeader;
     }
 
     Channel<String> createRelayStrand(boolean heavyweight, final Channel<String> prev) {
         final Channel<String> channel = Channels.newChannel(bufferSize);
-        Strand s = newStrand(heavyweight, new SuspendableRunnable() {
-            @Override
-            public void run() throws InterruptedException, SuspendExecution {
-                String m;
-                while ((m = channel.receive()) != null)
-                    prev.send(createMessage(m));
-                prev.close();
-            }
+        Strand s = newStrand(heavyweight, (Callable) () -> {
+            String m;
+            while ((m = channel.receive()) != null)
+                prev.send(createMessage(m));
+            prev.close();
+            return null;
         });
         s.start();
         return channel;
     }
 
-    Strand newStrand(boolean heavyweight, SuspendableRunnable target) {
+    Strand newStrand(boolean heavyweight, Callable target) {
         if (heavyweight)
             return Strand.of(new Thread(Strand.toRunnable(target)));
         else
-            return Strand.of(new Fiber(target));
+            return Strand.of(new co.paralleluniverse.fibers.Fiber(target));
     }
 
     String createMessage(String receivedMessage) {

@@ -19,6 +19,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +72,7 @@ class LocalActorRegistry extends co.paralleluniverse.actors.spi.ActorRegistry {
     }
 
     @Override
-    public ActorRef<?> tryGetActor(final String name) throws SuspendExecution {
+    public ActorRef<?> tryGetActor(final String name) {
         ActorRef<?> actor = registeredActors.get(name);
         if (actor == null) {
             lock.lock();
@@ -84,12 +86,12 @@ class LocalActorRegistry extends co.paralleluniverse.actors.spi.ActorRegistry {
     }
 
     @Override
-    public ActorRef<?> getActor(final String name) throws InterruptedException, SuspendExecution {
+    public ActorRef<?> getActor(final String name) throws InterruptedException {
         return getActor(name, 0, null);
     }
 
     @Override
-    public ActorRef<?> getActor(final String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public ActorRef<?> getActor(final String name, long timeout, TimeUnit unit) throws InterruptedException {
         ActorRef<?> actor = registeredActors.get(name);
         if (actor == null) {
             final long deadline = unit != null ? System.nanoTime() + unit.toNanos(timeout) : 0;
@@ -117,7 +119,7 @@ class LocalActorRegistry extends co.paralleluniverse.actors.spi.ActorRegistry {
     }
 
     @Override
-    public <T extends ActorRef<?>> T getOrRegisterActor(final String name, Callable<T> actorFactory) throws SuspendExecution {
+    public <T extends ActorRef<?>> T getOrRegisterActor(final String name, Callable<T> actorFactory) {
         T actor = (T)registeredActors.get(name);
         if (actor == null) {
             lock.lock();

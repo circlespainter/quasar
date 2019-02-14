@@ -71,7 +71,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @return the value sent as a response from the actor
      * @throws RuntimeException if the actor encountered an error while processing the request
      */
-    public final V call(CallMessage m) throws InterruptedException, SuspendExecution {
+    public final V call(CallMessage m) throws InterruptedException {
         final long timeout = defaultTimeoutNanos;
         try {
             if (timeout > 0)
@@ -98,7 +98,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @throws RuntimeException if the actor encountered an error while processing the request
      * @throws TimeoutException if the timeout expires before a response has been received.
      */
-    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
+    public final V call(CallMessage m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
         final V res = RequestReplyHelper.call(this, new ServerRequest<V>(from(), null, MessageType.CALL, m), timeout, unit);
         return res;
     }
@@ -114,7 +114,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * @throws RuntimeException if the actor encountered an error while processing the request
      * @throws TimeoutException if the timeout expires before a response has been received.
      */
-    public final V call(CallMessage m, Timeout timeout) throws TimeoutException, InterruptedException, SuspendExecution {
+    public final V call(CallMessage m, Timeout timeout) throws TimeoutException, InterruptedException {
         return call(m, timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
 
@@ -123,7 +123,7 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      *
      * @param m the request
      */
-    public final void cast(CastMessage m) throws SuspendExecution {
+    public final void cast(CastMessage m) {
         this.send(new ServerRequest(LocalActor.self(), makeId(), MessageType.CAST, m));
     }
 

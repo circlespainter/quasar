@@ -63,10 +63,9 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      * the exception will be thrown <i>into</i> the actor.
      *
      * @param message
-     * @throws SuspendExecution
      */
     @Override
-    public void send(Message message) throws SuspendExecution {
+    public void send(Message message) {
         try {
             MutabilityTester.testMutability(message);
             ActorImpl<Message> x = getImpl();
@@ -88,9 +87,8 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      * better latency than {@link #send(java.lang.Object)}.
      *
      * @param message
-     * @throws SuspendExecution
      */
-    public void sendSync(Message message) throws SuspendExecution {
+    public void sendSync(Message message) {
         try {
             MutabilityTester.testMutability(message);
             getImpl().sendSync(message);
@@ -114,10 +112,9 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
-     * @throws SuspendExecution
      */
     @Override
-    public boolean send(Message message, long timeout, TimeUnit unit) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, long timeout, TimeUnit unit) {
         send(message);
         return true;
     }
@@ -135,10 +132,9 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      * @param msg     the message
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
-     * @throws SuspendExecution
      */
     @Override
-    public boolean send(Message message, Timeout timeout) throws SuspendExecution, InterruptedException {
+    public boolean send(Message message, Timeout timeout) {
         send(message);
         return true;
     }

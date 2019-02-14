@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -17,14 +17,15 @@ import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorLoader;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.MailboxConfig;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
-import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.reply;
+import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.replyError;
 
 /**
  * A behavior actor that can be notified of *event* messages, which are delivered to *event handlers* which may be registered with the actor.
@@ -45,7 +46,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
      * @param strand        this actor's strand.
      * @param mailboxConfig this actor's mailbox settings.
      */
-    public EventSourceActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    public EventSourceActor(String name, Initializer initializer, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
     }
 
@@ -67,12 +68,12 @@ public class EventSourceActor<Event> extends BehaviorActor {
     }
 
     @Override
-    public EventSource<Event> spawn(StrandFactory sf) {
+    public EventSource<Event> spawn(co.paralleluniverse.strands.StrandFactory sf) {
         return (EventSource<Event>) super.spawn(sf);
     }
 
     @Override
-    public EventSource<Event> spawn(FiberFactory ff) {
+    public EventSource<Event> spawn(co.paralleluniverse.fibers.FiberFactory ff) {
         return (EventSource<Event>) super.spawn(ff);
     }
 
@@ -98,6 +99,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     /**
      * Creates a new event-source actor.
      *
@@ -174,7 +176,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
     }
     //</editor-fold>
 
-    protected boolean addHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+    protected boolean addHandler(EventHandler<Event> handler) {
         verifyInActor();
 
         EventHandler<Event> _handler = ActorLoader.getReplacementFor(handler);
@@ -184,7 +186,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
         return res;
     }
 
-    protected boolean removeHandler(EventHandler<Event> handler) throws SuspendExecution, InterruptedException {
+    protected boolean removeHandler(EventHandler<Event> handler) {
         verifyInActor();
         log().info("{} removing handler {}", this, handler);
         int index = -1;
@@ -198,12 +200,12 @@ public class EventSourceActor<Event> extends BehaviorActor {
         return true;
     }
 
-    protected void notify(Event event) throws SuspendExecution {
+    protected void notify(Event event) {
         ref().send(event);
     }
 
     @Override
-    protected final void handleMessage(Object m1) throws InterruptedException, SuspendExecution {
+    protected final void handleMessage(Object m1) throws InterruptedException {
         if (m1 instanceof RequestMessage) {
             final RequestMessage req = (RequestMessage) m1;
             try {
@@ -222,14 +224,14 @@ public class EventSourceActor<Event> extends BehaviorActor {
     }
 
     @Override
-    protected void onTerminate(Throwable cause) throws SuspendExecution, InterruptedException {
+    protected void onTerminate(Throwable cause) throws InterruptedException {
         super.onTerminate(cause);
         handlers.clear();
     }
 
-    private void notifyHandlers(Event event) throws InterruptedException, SuspendExecution {
+    private void notifyHandlers(Event event) throws InterruptedException {
         log().debug("{} Got event {}", this, event);
-        for (ListIterator<EventHandler<Event>> it = handlers.listIterator(); it.hasNext();) {
+        for (ListIterator<EventHandler<Event>> it = handlers.listIterator(); it.hasNext(); ) {
             EventHandler<Event> handler = it.next();
 
             EventHandler<Event> _handler = ActorLoader.getReplacementFor(handler);

@@ -18,6 +18,8 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.MessageProcessor;
 import co.paralleluniverse.actors.SelectiveReceiveHelper;
 import co.paralleluniverse.strands.Timeout;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
@@ -41,13 +43,10 @@ public class FiniteStateMachineActor extends BehaviorActor {
     /**
      * The termination state for the FSM
      */
-    public static final SuspendableCallable<SuspendableCallable> TERMINATE = new SuspendableCallable<SuspendableCallable>() {
-        @Override
-        public SuspendableCallable run() throws SuspendExecution, InterruptedException {
-            throw new AssertionError();
-        }
+    public static final Callable<Callable> TERMINATE = () -> {
+        throw new AssertionError();
     };
-    private SuspendableCallable<SuspendableCallable> state;
+    private Callable<Callable> state;
     private final SelectiveReceiveHelper<Object> helper = new SelectiveReceiveHelper<>(this);
 
     /**
@@ -59,7 +58,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param mailboxConfig this actor's mailbox settings.
      */
     @SuppressWarnings("OverridableMethodCallInConstructor")
-    public FiniteStateMachineActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig) {
+    public FiniteStateMachineActor(String name, Initializer initializer, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig) {
         super(name, initializer, strand, mailboxConfig);
         state = initialState();
         if (state == null)
@@ -75,7 +74,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param mailboxConfig this actor's mailbox settings.
      * @param initialState  the initial state; will be used instead of calling {@link #initialState() initialState()}.
      */
-    public FiniteStateMachineActor(String name, Initializer initializer, Strand strand, MailboxConfig mailboxConfig, SuspendableCallable<SuspendableCallable> initialState) {
+    public FiniteStateMachineActor(String name, Initializer initializer, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig, Callable<Callable> initialState) {
         super(name, initializer, strand, mailboxConfig);
         state = initialState;
         if (state == null)
@@ -176,19 +175,19 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * Returns this finite-state-machine actor's initial state; the default implementation returns {@link #TERMINATE TERMINATE}.
      * @return this finite-state-machine actor's initial state
      */
-    protected SuspendableCallable<SuspendableCallable> initialState() {
+    protected Callable<Callable> initialState() {
         return TERMINATE;
     }
 
     @Override
-    protected final void behavior() throws InterruptedException, SuspendExecution {
+    protected final void behavior() throws Exception {
         while (isRunning()) {
             if (state == null)
                 throw new NullPointerException();
             if (state == TERMINATE)
                 break;
             checkCodeSwap();
-            state = state.run();
+            state = state.call();
         }
     }
 
@@ -203,7 +202,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}
      * @throws InterruptedException
      */
-    public final SuspendableCallable<SuspendableCallable> receive(MessageProcessor<Object, SuspendableCallable<SuspendableCallable>> proc) throws SuspendExecution, InterruptedException {
+    public final Callable<Callable> receive(MessageProcessor<Object, Callable<Callable>> proc) throws InterruptedException {
         return helper.receive(proc);
     }
 
@@ -222,7 +221,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final SuspendableCallable<SuspendableCallable> receive(long timeout, TimeUnit unit, MessageProcessor<Object, SuspendableCallable<SuspendableCallable>> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final Callable<Callable> receive(long timeout, TimeUnit unit, MessageProcessor<Object, Callable<Callable>> proc) throws TimeoutException, InterruptedException {
         return helper.receive(timeout, unit, proc);
     }
 
@@ -235,13 +234,12 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param proc    performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final SuspendableCallable<SuspendableCallable> receive(Timeout timeout, MessageProcessor<Object, SuspendableCallable<SuspendableCallable>> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final Callable<Callable> receive(Timeout timeout, MessageProcessor<Object, Callable<Callable>> proc) throws TimeoutException, InterruptedException {
         return helper.receive(timeout, proc);
     }
 
@@ -256,7 +254,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param proc performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if no message was slected.
      */
-    public final SuspendableCallable<SuspendableCallable> tryReceive(MessageProcessor<Object, SuspendableCallable<SuspendableCallable>> proc) {
+    public final Callable<Callable> tryReceive(MessageProcessor<Object, Callable<Callable>> proc) {
         return helper.tryReceive(proc);
     }
 
@@ -271,7 +269,7 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @return The next message of the wanted type.
      * @throws InterruptedException
      */
-    public final <M> M receive(final Class<M> type) throws SuspendExecution, InterruptedException {
+    public final <M> M receive(final Class<M> type) throws InterruptedException {
         return helper.receive(SelectiveReceiveHelper.ofType(type));
     }
 
@@ -286,10 +284,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param unit    timeout's time unit.
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M> M receive(long timeout, TimeUnit unit, final Class<M> type) throws InterruptedException, TimeoutException {
         return helper.receive(timeout, unit, SelectiveReceiveHelper.ofType(type));
     }
 
@@ -303,10 +300,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M> M receive(Timeout timeout, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M> M receive(Timeout timeout, final Class<M> type) throws InterruptedException, TimeoutException {
         return helper.receive(timeout, SelectiveReceiveHelper.ofType(type));
     }
 
@@ -323,13 +319,5 @@ public class FiniteStateMachineActor extends BehaviorActor {
      */
     public final <M> M tryReceive(final Class<M> type) {
         return helper.tryReceive(SelectiveReceiveHelper.ofType(type));
-    }
-
-    @Override
-    protected Object readResolve() throws java.io.ObjectStreamException {
-        Object x = super.readResolve();
-        assert x == this;
-        helper.setActor(this);
-        return this;
     }
 }

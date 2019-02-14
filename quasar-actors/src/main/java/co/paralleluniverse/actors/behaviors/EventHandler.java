@@ -20,5 +20,5 @@ package co.paralleluniverse.actors.behaviors;
  * @author pron
  */
 public interface EventHandler<Event> {
-    void handleEvent(Event event) throws SuspendExecution, InterruptedException;
+    void handleEvent(Event event) throws InterruptedException;
 }

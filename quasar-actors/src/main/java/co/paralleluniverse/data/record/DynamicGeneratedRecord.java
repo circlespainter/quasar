@@ -12,12 +12,14 @@
  */
 package co.paralleluniverse.data.record;
 
+import net.bytebuddy.jar.asm.ClassWriter;
+import net.bytebuddy.jar.asm.MethodVisitor;
+import net.bytebuddy.jar.asm.Type;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import co.paralleluniverse.asm.ClassWriter;
-import co.paralleluniverse.asm.MethodVisitor;
-import static co.paralleluniverse.asm.Opcodes.*;
-import co.paralleluniverse.asm.Type;
+
+import static net.bytebuddy.jar.asm.Opcodes.*;
 
 /**
  *

@@ -19,6 +19,9 @@ import co.paralleluniverse.actors.MailboxConfig;
 import co.paralleluniverse.actors.behaviors.Server.ServerRequest;
 
 import java.util.concurrent.TimeUnit;
+
+import co.paralleluniverse.fibers.FiberFactory;
+import co.paralleluniverse.strands.StrandFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +51,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param strand        this actor's strand.
      * @param mailboxConfig this actor's mailbox settings.
      */
-    public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, Strand strand, MailboxConfig mailboxConfig) {
+    public ServerActor(String name, ServerHandler<CallMessage, V, CastMessage> server, long timeout, TimeUnit unit, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig) {
         super(name, server, strand, mailboxConfig);
         this.timeoutUnit = timeout > 0 ? unit : null;
         this.timeout = timeout;
@@ -187,7 +190,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     }
 
     @Override
-    protected final void behavior() throws InterruptedException, SuspendExecution {
+    protected final void behavior() throws InterruptedException {
         while (isRunning()) {
             checkCodeSwap();
             Object m1 = receive(timeout, timeoutUnit);
@@ -205,7 +208,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * {@link #handleCast(ActorRef, Object, Object) handleCast} or {@link #handleInfo(Object) handleInfo} as appropriate.
      */
     @Override
-    protected void handleMessage(Object m) throws InterruptedException, SuspendExecution {
+    protected void handleMessage(Object m) {
         if (m instanceof ServerRequest) {
             ServerRequest r = (ServerRequest) m;
             switch (r.getType()) {
@@ -269,7 +272,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @return a value that will be sent as a response to the sender of the request.
      * @throws Exception if thrown, it will be sent back to the sender of the request.
      */
-    protected V handleCall(ActorRef<?> from, Object id, CallMessage m) throws Exception, SuspendExecution {
+    protected V handleCall(ActorRef<?> from, Object id, CallMessage m) throws Exception {
         if (server() != null)
             return server().handleCall(from, id, m);
         else
@@ -290,7 +293,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id    the request's identifier
      * @param value the result of the request
      */
-    public final void reply(ActorRef<?> to, Object id, V value) throws SuspendExecution {
+    public final void reply(ActorRef<?> to, Object id, V value) {
         verifyInActor();
         ((ActorRef) to).send(new ValueResponseMessage<V>(id, value));
     }
@@ -308,7 +311,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id    the request's identifier
      * @param error the error the request has caused
      */
-    public final void replyError(ActorRef<?> to, Object id, Throwable error) throws SuspendExecution {
+    public final void replyError(ActorRef<?> to, Object id, Throwable error) {
         verifyInActor();
         ((ActorRef) to).send(new ErrorResponseMessage(id, error));
     }
@@ -323,7 +326,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * @param id   the request's unique id
      * @param m    the request
      */
-    protected void handleCast(ActorRef<?> from, Object id, CastMessage m) throws SuspendExecution {
+    protected void handleCast(ActorRef<?> from, Object id, CastMessage m) {
         if (server() != null)
             server().handleCast(from, id, m);
         else
@@ -338,7 +341,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      *
      * @param m the message
      */
-    protected void handleInfo(Object m) throws SuspendExecution {
+    protected void handleInfo(Object m) {
         if (server() != null)
             server().handleInfo(m);
     }
@@ -351,7 +354,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * By default, this method calls {@link #server() server}.{@link ServerHandler#handleTimeout() handleTimeout} if a server object was supplied
      * at construction time. Otherwise, it does nothing.
      */
-    protected void handleTimeout() throws SuspendExecution {
+    protected void handleTimeout() {
         if (server() != null)
             server().handleTimeout();
     }

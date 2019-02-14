@@ -1,13 +1,13 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
@@ -15,11 +15,14 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.ServiceUtil;
-
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import co.paralleluniverse.fibers.DefaultFiberFactory;
+import co.paralleluniverse.fibers.FiberFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A registry used to find registered actors by name. Actors are registered with the {@link Actor#register() } method.
@@ -39,7 +42,7 @@ public class ActorRegistry {
 
     }
 
-    static <Message> void register(Actor<Message, ?> actor) throws SuspendExecution {
+    static <Message> void register(Actor<Message, ?> actor) {
         final String name = actor.getName();
         if (name == null)
             throw new IllegalArgumentException("name is null");
@@ -64,7 +67,7 @@ public class ActorRegistry {
      * @param name the actor's name.
      * @return the actor, or {@code null} if no actor by that name is currently registered.
      */
-    public static <T extends ActorRef<?>> T tryGetActor(String name) throws SuspendExecution {
+    public static <T extends ActorRef<?>> T tryGetActor(String name) {
         return (T) registry.tryGetActor(name);
     }
 
@@ -76,7 +79,7 @@ public class ActorRegistry {
      * @param unit    the timeout's unit
      * @return the actor, or {@code null} if the timeout expires before one is registered.
      */
-    public static <T extends ActorRef<?>> T getActor(String name, long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
+    public static <T extends ActorRef<?>> T getActor(String name, long timeout, TimeUnit unit) throws InterruptedException {
         return (T) registry.getActor(name, timeout, unit);
     }
 
@@ -86,7 +89,7 @@ public class ActorRegistry {
      * @param name the actor's name.
      * @return the actor.
      */
-    public static <T extends ActorRef<?>> T getActor(String name) throws InterruptedException, SuspendExecution {
+    public static <T extends ActorRef<?>> T getActor(String name) throws InterruptedException {
         return getActor(name, 0, null);
     }
 
@@ -97,19 +100,15 @@ public class ActorRegistry {
      *
      * @param name         the actor's name.
      * @param actorFactory returns an actor that will be registered if one isn't currently registered.
-     * @param scheduler    the {@link FiberScheduler} to use when spawning the actor, or {@code null} to spawn the fiber using the default scheduler.
+     * @param fiberFactory the {@link Executor} to use when spawning the actor, or {@code null} to spawn the fiber using the default fiberFactory.
      * @return the actor.
      */
-    public static <Message> ActorRef<Message> getOrRegisterActor(final String name, final Callable<Actor<Message, ?>> actorFactory, final FiberScheduler scheduler) throws SuspendExecution {
-        Callable<ActorRef<Message>> factory = new Callable<ActorRef<Message>>() {
-
-            @Override
-            public ActorRef<Message> call() throws Exception {
-                Actor actor = actorFactory.call();
-                actor.preRegister(name);
-                final FiberFactory ff = scheduler;
-                return scheduler != null ? actor.spawn(ff) : actor.spawnThread();
-            }
+    public static <Message> ActorRef<Message> getOrRegisterActor(final String name, final Callable<Actor<Message, ?>> actorFactory, final FiberFactory fiberFactory) {
+        Callable<ActorRef<Message>> factory = () -> {
+            Actor actor = actorFactory.call();
+            actor.preRegister(name);
+            final FiberFactory ff = fiberFactory;
+            return fiberFactory != null ? actor.spawn(ff) : actor.spawnThread();
         };
         ActorRef<Message> actor = registry.getOrRegisterActor(name, factory);
         LocalActor.postRegister(actor);
@@ -125,8 +124,8 @@ public class ActorRegistry {
      * @param actorFactory returns an actor that will be registered if one isn't currently registered.
      * @return the actor.
      */
-    public static <Message> ActorRef<Message> getOrRegisterActor(String name, Callable<Actor<Message, ?>> actorFactory) throws SuspendExecution {
-        return getOrRegisterActor(name, actorFactory, DefaultFiberScheduler.getInstance());
+    public static <Message> ActorRef<Message> getOrRegisterActor(String name, Callable<Actor<Message, ?>> actorFactory) {
+        return getOrRegisterActor(name, actorFactory, DefaultFiberFactory.getInstance());
     }
 
     /**

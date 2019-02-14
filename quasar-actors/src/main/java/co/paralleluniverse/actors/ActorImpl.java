@@ -79,7 +79,7 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
         }
     }
 
-    protected void sendSync(Message message) throws SuspendExecution {
+    protected void sendSync(Message message) {
         MutabilityTester.testMutability(message);
         try {
             internalSend(message);
@@ -105,7 +105,7 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
      *
      * @param message
      */
-    protected abstract void internalSend(Object message) throws SuspendExecution;
+    protected abstract void internalSend(Object message);
 
     protected abstract void internalSendNonSuspendable(Object message);
     //</editor-fold>

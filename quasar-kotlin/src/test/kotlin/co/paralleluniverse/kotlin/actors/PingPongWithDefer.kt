@@ -37,7 +37,7 @@ val sdfDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
 fun now(): String = "[${sdfDate.format(Date())}]"
 
 class Ping(val n: Int) : Actor() {
-    @Suspendable override fun doRun() {
+    override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
         for (i in 1..n) {
             val msg = Msg("ping$i", self())
@@ -71,7 +71,7 @@ class Ping(val n: Int) : Actor() {
 }
 
 class Pong : Actor() {
-    @Suspendable override fun doRun() {
+    override fun doRun() {
         var discardGarbage = false
 
         while (true) {
@@ -91,7 +91,7 @@ class Pong : Actor() {
                         println("${now()} Pong received 'finished', exiting")
                         return                      // Non-local return, exit actor
                     }
-                    is Timeout -> {
+                    is Companion.Timeout -> {
                         println("${now()} Pong timeout in 'receive', exiting")
                         return                      // Non-local return, exit actor
                     }

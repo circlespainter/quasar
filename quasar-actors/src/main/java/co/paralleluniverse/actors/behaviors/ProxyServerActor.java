@@ -1,41 +1,36 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.actors.ActorLoader;
-import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.actors.ActorRefDelegate;
-import co.paralleluniverse.actors.LocalActor;
-import co.paralleluniverse.actors.MailboxConfig;
+import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import com.google.common.collect.ImmutableSet;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 import net.bytebuddy.ByteBuddy;
-//import java.lang.reflect.Proxy;
-import java.lang.reflect.InvocationHandler;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.ConcurrentMap;
+
 import static net.bytebuddy.matcher.ElementMatchers.anyOf;
 import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
+
+//import java.lang.reflect.Proxy;
 
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
@@ -63,7 +58,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
      * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
      * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
      */
-    public ProxyServerActor(String name, Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
+    public ProxyServerActor(String name, co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target, Class<?>[] interfaces) {
         super(name, null, 0L, null, strand, mailboxConfig);
         this.callOnVoidMethods = callOnVoidMethods;
         this.target = ActorLoader.getReplacementFor(target != null ? target : this);
@@ -74,6 +69,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
 
     //<editor-fold defaultstate="collapsed" desc="Constructors">
     /////////// Constructors ///////////////////////////////////
+
     /**
      * Creates a new {@code ProxyServerActor}
      *
@@ -129,7 +125,6 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
      * @param mailboxConfig     this actor's mailbox settings.
      * @param callOnVoidMethods whether calling void methods will block until they have completed execution
      * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
-     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
      */
     public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, null);
@@ -309,7 +304,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             assert !method.getDeclaringClass().isAssignableFrom(ActorRefDelegate.class);
 
-            assert !method.getDeclaringClass().isAssignableFrom(Server.class);            
+            assert !method.getDeclaringClass().isAssignableFrom(Server.class);
 //            final Class<?> cls = method.getDeclaringClass();
 //            if (cls.isAssignableFrom(Server.class) || cls.isAssignableFrom(SendPort.class)) {
 //                try {
@@ -320,24 +315,20 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
 //            }
 
             final Server<Invocation, Object, Invocation> ref = (Server<Invocation, Object, Invocation>) proxy;
-            try {
-                if (isInActor(ref)) {
-                    try {
-                        return method.invoke(ServerActor.currentServerActor(), args);
-                    } catch (InvocationTargetException e) {
-                        throw e.getCause();
-                    }
-                } else {
-                    final Invocation m = new Invocation(method, args, false);
-                    if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
-                        return ref.call(m);
-                    else {
-                        ref.cast(m);
-                        return null;
-                    }
+            if (isInActor(ref)) {
+                try {
+                    return method.invoke(ServerActor.currentServerActor(), args);
+                } catch (InvocationTargetException e) {
+                    throw e.getCause();
                 }
-            } catch (SuspendExecution e) {
-                throw RuntimeSuspendExecution.of(e);
+            } else {
+                final Invocation m = new Invocation(method, args, false);
+                if (callOnVoidMethods || (method.getReturnType() != void.class && method.getReturnType() != Void.class))
+                    return ref.call(m);
+                else {
+                    ref.cast(m);
+                    return null;
+                }
             }
         }
 
@@ -347,7 +338,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
     }
 
     @Override
-    protected void checkCodeSwap() throws SuspendExecution {
+    protected void checkCodeSwap() {
         verifyInActor();
         Object _target = ActorLoader.getReplacementFor(target);
         if (_target != target)
@@ -357,23 +348,21 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
     }
 
     @Override
-    protected Object handleCall(ActorRef<?> from, Object id, Invocation m) throws Exception, SuspendExecution {
+    protected Object handleCall(ActorRef<?> from, Object id, Invocation m) throws Exception {
         try {
             Object res = m.invoke(target);
             return res == null ? NULL_RETURN_VALUE : res;
         } catch (InvocationTargetException e) {
-            assert !(e.getCause() instanceof SuspendExecution);
             log().error("handleCall: Invocation " + m + " has thrown an exception.", e.getCause());
             throw rethrow(e.getCause());
         }
     }
 
     @Override
-    protected void handleCast(ActorRef<?> from, Object id, Invocation m) throws SuspendExecution {
+    protected void handleCast(ActorRef<?> from, Object id, Invocation m) {
         try {
             m.invoke(target);
         } catch (InvocationTargetException e) {
-            assert !(e.getCause() instanceof SuspendExecution);
             log().error("handleCast: Invocation " + m + " has thrown an exception.", e.getCause());
         }
     }
@@ -404,7 +393,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
             return Collections.unmodifiableList(Arrays.asList(params));
         }
 
-        Object invoke(Object target) throws SuspendExecution, InvocationTargetException {
+        Object invoke(Object target) throws InvocationTargetException {
             try {
                 return method.invoke(target, params);
             } catch (IllegalAccessException e) {

@@ -19,7 +19,7 @@ package co.paralleluniverse.actors.behaviors;
  * @author pron
  */
 public interface Initializer {
-    void init() throws InterruptedException, SuspendExecution;
+    void init() throws InterruptedException;
 
-    void terminate(Throwable cause) throws SuspendExecution;
+    void terminate(Throwable cause);
 }

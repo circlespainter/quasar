@@ -78,6 +78,10 @@ final public class Fiber<V> extends Strand implements Joinable<V>, Serializable,
 
     private Map<String, Object> context = new ConcurrentHashMap<>();
 
+    public Callable<V> getTarget() {
+        return target;
+    }
+
     public Object contextGet(String key) {
         return context.get(key);
     }

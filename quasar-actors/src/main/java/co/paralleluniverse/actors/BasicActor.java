@@ -1,19 +1,20 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
  * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.strands.Timeout;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -62,12 +63,12 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
         this((String) null, null);
     }
 
-    public BasicActor(Strand strand, String name, MailboxConfig mailboxConfig) {
+    public BasicActor(co.paralleluniverse.strands.Strand strand, String name, MailboxConfig mailboxConfig) {
         super(strand, name, mailboxConfig);
         this.helper = new SelectiveReceiveHelper<>(this);
     }
 
-    public BasicActor(Strand strand, MailboxConfig mailboxConfig) {
+    public BasicActor(co.paralleluniverse.strands.Strand strand, MailboxConfig mailboxConfig) {
         this(strand, (String) null, mailboxConfig);
     }
 
@@ -83,7 +84,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}
      * @throws InterruptedException
      */
-    public final <T> T receive(MessageProcessor<? super Message, T> proc) throws SuspendExecution, InterruptedException {
+    public final <T> T receive(MessageProcessor<? super Message, T> proc) throws InterruptedException {
         return helper.receive(proc);
     }
 
@@ -103,7 +104,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(long timeout, TimeUnit unit, MessageProcessor<? super Message, T> proc) throws TimeoutException, InterruptedException {
         return helper.receive(timeout, unit, proc);
     }
 
@@ -122,7 +123,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
      * @throws InterruptedException
      */
-    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, SuspendExecution, InterruptedException {
+    public final <T> T receive(Timeout timeout, MessageProcessor<? super Message, T> proc) throws TimeoutException, InterruptedException {
         return helper.receive(timeout, proc);
     }
 
@@ -153,7 +154,7 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @return The next message of the wanted type.
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(final Class<M> type) throws SuspendExecution, InterruptedException {
+    public final <M extends Message> M receive(final Class<M> type) throws InterruptedException {
         return helper.receive(SelectiveReceiveHelper.ofType(type));
     }
 
@@ -168,10 +169,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @param unit    timeout's time unit.
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(long timeout, TimeUnit unit, final Class<M> type) throws InterruptedException, TimeoutException {
         return helper.receive(timeout, unit, SelectiveReceiveHelper.ofType(type));
     }
 
@@ -185,10 +185,9 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
      * @return The next message of the wanted type, or {@code null} if the timeout expires.
-     * @throws SuspendExecution
      * @throws InterruptedException
      */
-    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws SuspendExecution, InterruptedException, TimeoutException {
+    public final <M extends Message> M receive(Timeout timeout, final Class<M> type) throws InterruptedException, TimeoutException {
         return helper.receive(timeout, SelectiveReceiveHelper.ofType(type));
     }
 
@@ -200,7 +199,6 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
      * non-selective) retrieves them.
      *
-     * @param <T>  The type of the returned value
      * @param type the type of the messages to select
      * @return The next message of the wanted type if immediately found; {@code null} otherwise.
      */
@@ -211,13 +209,5 @@ public abstract class BasicActor<Message, V> extends Actor<Message, V> {
     @Override
     public final String getName() {
         return (String) super.getName();
-    }
-
-    @Override
-    protected Object readResolve() throws java.io.ObjectStreamException {
-        Object x = super.readResolve();
-        assert x == this;
-        helper.setActor(this);
-        return this;
     }
 }

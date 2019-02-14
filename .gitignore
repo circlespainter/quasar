@@ -1,5 +1,5 @@
 /dist/
-/out/
+**/out/
 _site/
 /docs/javadoc/
 .idea/
